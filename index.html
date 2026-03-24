@@ -16,45 +16,124 @@ Date Created: March 13, 2026
 </head>
 
 <body>
+    <div id="onboardingOverlay" class="onboarding-screen">
+        <div class="onboarding-card">
+            <div class="logo-icon">🎓</div>
+            <h2>Welcome to GradeQuest</h2>
+            
+            <div class="input-group">
+                <input type="text" id="userNameInput" placeholder="What is your name?" autocomplete="off">
+            </div>
+
+            <div class="input-group">
+                <label>Select your Year 1 School:</label>
+                <div class="custom-select-container">
+                    <input type="text" id="schoolSearchOnboarding" placeholder="Search 9,000+ schools..." autocomplete="off"
+                        oninput="searchGlobalSchools(this.value, 'schoolResultsOnboarding', 'selectedSchoolKey')">
+                    <div id="schoolResultsOnboarding" class="results-list"></div>
+                    <input type="hidden" id="selectedSchoolKey" value="mcmaster">
+                </div>
+            </div>
+
+            <div class="input-group">
+                <label>Grading System:</label>
+                <select id="scaleSelectorOnboarding" class="search-input" style="width:100%; height:45px; margin-top:5px; border-radius:12px; border:1px solid #cbd5e1; padding:0 10px;">
+                    <optgroup label="North America">
+                        <option value="us_40">US / Canada (4.0 Scale)</option>
+                        <option value="can_433">Canada (4.33 Scale)</option>
+                        <option value="mcmaster">McMaster (12pt Scale)</option>
+                    </optgroup>
+                    <optgroup label="Europe">
+                        <option value="uk_honours">UK / Ireland / Australia (Honours)</option>
+                        <option value="germany_reverse">Germany (1.0 Best)</option>
+                        <option value="france_20">France / Lebanon (0-20)</option>
+                        <option value="scandinavia_7">Denmark / Scandinavia (7-step)</option>
+                        <option value="switzerland_6">Switzerland (1-6)</option>
+                        <option value="italy_30">Italy (0-30)</option>
+                        <option value="russia_5">Russia / Eastern Europe (2-5)</option>
+                    </optgroup>
+                    <optgroup label="Asia & Oceania">
+                        <option value="india_10">India (10pt CGPA)</option>
+                        <option value="china_5">China (5.0 Scale)</option>
+                        <option value="australia_7">Australia (7.0 Scale)</option>
+                    </optgroup>
+                    <optgroup label="Africa & Latin America">
+                        <option value="west_africa_waec">West Africa (WASSCE)</option>
+                        <option value="brazil_10">Brazil (0-10)</option>
+                        <option value="chile_7">Chile (1.0-7.0)</option>
+                        <option value="mexico_10">Mexico (0-10)</option>
+                    </optgroup>
+                </select>
+            </div>
+
+            <button onclick="finishOnboarding()" class="start-btn">Start Tracking</button>
+        </div>
+    </div>
+
     <div class="container">
-        <h1>Grade Tracker</h1>
+        <header>
+            <h1 id="mainTitle">Grade Tracker</h1>
+            <button onclick="resetProfile()" class="settings-link">Reset Profile</button>
+        </header>
 
         <div id="gpaSummary" class="gpa-card">
-            <label>Selected Period GPA</label>
+            <label id="gpaLabel">GPA Summary</label>
             <div id="totalGpa" class="gpa-val">0.00</div>
         </div>
 
         <div class="setup-section">
-            <input type="text" id="className" placeholder="Course Name (e.g. COMPSCI_1XD3)">
-            <select id="classUnits" style="width: 100px;">
+            <input type="text" id="className" placeholder="Course Name (e.g. COMPSCI_1XD3)" autocomplete="off">
+            <select id="classUnits" style="width: 120px; border-radius: 12px; padding: 10px; border:1px solid #cbd5e1;">
                 <option value="3">3 Units</option>
                 <option value="6">6 Units</option>
                 <option value="1.5">1.5 Units</option>
+                <option value="4">4 Units</option>
             </select>
             <button onclick="addClass()">+ Create Class</button>
         </div>
 
         <div class="view-controls">
             <div class="control-group">
-                <label>Year:</label>
-                <select id="yearSelector" onchange="render()">
-                    <option value="all">All Years</option>
-                    <option value="1">Year 1</option>
-                    <option value="2">Year 2</option>
-                    <option value="3">Year 3</option>
-                    <option value="4">Year 4</option>
-                </select>
+                <label>Academic Year</label>
+                <div class="custom-select-container">
+                    <input type="text" id="yearSearch" class="search-input" placeholder="Select Year..." readonly autocomplete="off"
+                        onclick="toggleDropdown('yearResults')">
+                    <div id="yearResults" class="results-list">
+                        <div class="option" onclick="selectYear('1')">Year 1</div>
+                        <div class="option" onclick="selectYear('2')">Year 2</div>
+                        <div class="option" onclick="selectYear('3')">Year 3</div>
+                        <div class="option" onclick="selectYear('4')">Year 4</div>
+                        <div class="option" onclick="selectYear('all')">Full History</div>
+                    </div>
+                    <input type="hidden" id="yearSelectorValue" value="1">
+                </div>
             </div>
+
             <div class="control-group">
-                <label>Course:</label>
-                <select id="classSelector" onchange="render()">
-                    <option value="all">All Classes</option>
-                </select>
+                <label>School for this Year</label>
+                <div class="custom-select-container">
+                    <input type="text" id="schoolSearchDashboard" placeholder="Search school..." autocomplete="off"
+                        oninput="searchGlobalSchools(this.value, 'schoolResultsDashboard', 'currentYearSchoolKey')">
+                    <div id="schoolResultsDashboard" class="results-list"></div>
+                    <input type="hidden" id="currentYearSchoolKey">
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label>Filter Course</label>
+                <div class="custom-select-container">
+                    <input type="text" id="classSearch" class="search-input" placeholder="Search courses..." autocomplete="off"
+                        oninput="filterCourses(this.value)">
+                    <div id="classResults" class="results-list"></div>
+                    <input type="hidden" id="classSelectorValue" value="all">
+                </div>
             </div>
         </div>
 
         <div id="classesContainer"></div>
     </div>
+
+    <script src="js/schools.js"></script>
     <script src="js/script.js"></script>
 </body>
 
