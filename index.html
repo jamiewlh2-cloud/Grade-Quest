@@ -1,0 +1,61 @@
+<!--
+
+Author: Jamie Hammill
+Date Created: March 13, 2026
+
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GradeQuest - Academic Tracker</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+    <div class="container">
+        <h1>Grade Tracker</h1>
+
+        <div id="gpaSummary" class="gpa-card">
+            <label>Selected Period GPA</label>
+            <div id="totalGpa" class="gpa-val">0.00</div>
+        </div>
+
+        <div class="setup-section">
+            <input type="text" id="className" placeholder="Course Name (e.g. COMPSCI_1XD3)">
+            <select id="classUnits" style="width: 100px;">
+                <option value="3">3 Units</option>
+                <option value="6">6 Units</option>
+                <option value="1.5">1.5 Units</option>
+            </select>
+            <button onclick="addClass()">+ Create Class</button>
+        </div>
+
+        <div class="view-controls">
+            <div class="control-group">
+                <label>Year:</label>
+                <select id="yearSelector" onchange="render()">
+                    <option value="all">All Years</option>
+                    <option value="1">Year 1</option>
+                    <option value="2">Year 2</option>
+                    <option value="3">Year 3</option>
+                    <option value="4">Year 4</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label>Course:</label>
+                <select id="classSelector" onchange="render()">
+                    <option value="all">All Classes</option>
+                </select>
+            </div>
+        </div>
+
+        <div id="classesContainer"></div>
+    </div>
+    <script src="js/script.js"></script>
+</body>
+
+</html>
