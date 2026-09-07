@@ -1,6 +1,7 @@
 import {
     browserLocalPersistence,
     createUserWithEmailAndPassword,
+    deleteUser,
     onAuthStateChanged,
     sendEmailVerification,
     sendPasswordResetEmail,
@@ -10,7 +11,7 @@ import {
     updatePassword
 } from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js';
 import { getFirebaseAuth } from './firebaseClient.js';
-import { createUserProfile } from './userProfileService.js';
+import { createUserProfile, deleteUserProfile } from './userProfileService.js';
 
 let authInitializationError = null;
 
@@ -56,10 +57,34 @@ export function observeAuthState(callback) {
 
 export function createAccount(email, password, profile) {
     return withAuthErrors(async () => {
-        const result = await createUserWithEmailAndPassword(getFirebaseAuth(), email, password);
-        await createUserProfile(result.user, profile);
-        await sendEmailVerification(result.user);
-        return result.user;
+        const firebaseAuth = getFirebaseAuth();
+        let createdUser = null;
+        try {
+            const result = await createUserWithEmailAndPassword(firebaseAuth, email, password);
+            createdUser = result.user;
+            await createUserProfile(createdUser, profile);
+            await sendEmailVerification(createdUser);
+            return createdUser;
+        } catch (error) {
+            if (createdUser) {
+                let profileRollbackError = null;
+                try {
+                    await deleteUserProfile(createdUser.uid);
+                } catch (rollbackError) {
+                    profileRollbackError = rollbackError;
+                }
+                try {
+                    await deleteUser(createdUser);
+                } catch (rollbackError) {
+                    await signOut(firebaseAuth);
+                    throw new Error(`${error.message} Account rollback also failed: ${rollbackError.message}`);
+                }
+                if (profileRollbackError) {
+                    throw new Error(`${error.message} Profile cleanup also failed: ${profileRollbackError.message}`);
+                }
+            }
+            throw error;
+        }
     });
 }
 

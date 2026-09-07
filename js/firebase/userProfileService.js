@@ -1,4 +1,5 @@
 import {
+    deleteDoc,
     doc,
     getDoc,
     serverTimestamp,
@@ -50,6 +51,10 @@ export async function updateUserProfile(userId, profile) {
         updatedAt: serverTimestamp()
     }, { merge: true });
     return normalized;
+}
+
+export async function deleteUserProfile(userId) {
+    await deleteDoc(profileReference(userId));
 }
 
 export function profileIsComplete(profile) {

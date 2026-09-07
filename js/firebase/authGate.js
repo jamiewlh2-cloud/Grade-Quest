@@ -10,7 +10,7 @@ import {
 } from './authService.js';
 import { getUserProfile, profileIsComplete, updateUserProfile } from './userProfileService.js';
 
-const state = { mode: 'login', busy: false, initialized: false, user: null, profile: null };
+const state = { mode: 'login', busy: false, initialized: false, signupInProgress: false, user: null, profile: null };
 const elements = {};
 
 function cacheElements() {
@@ -101,6 +101,7 @@ function showApp(user, profile) {
 }
 
 async function resolveUser(user) {
+    if (state.signupInProgress) return;
     if (!user) {
         showAuth();
         setMode('login');
@@ -164,14 +165,38 @@ async function handleSubmit(event) {
         showMessage('Passwords do not match.');
         return;
     }
+    state.signupInProgress = state.mode === 'create';
     setBusy(true);
     const result = state.mode === 'create' ? await createAccount(email, password, profile) : await login(email, password);
-    setBusy(false);
     if (!result.ok) {
+        state.signupInProgress = false;
+        setBusy(false);
         showMessage(result.error);
         return;
     }
-    showMessage(state.mode === 'create' ? 'Account created. Check your email to verify it.' : 'Signed in successfully.', 'success');
+    if (state.mode === 'create') {
+        try {
+            const createdProfile = await getUserProfile(result.value.uid);
+            if (!createdProfile || !profileIsComplete(createdProfile)) {
+                throw new Error('Account created, but the user profile could not be verified.');
+            }
+            showApp(result.value, createdProfile);
+            showToast('Account created successfully.', 'success');
+        } catch (error) {
+            await logout();
+            state.signupInProgress = false;
+            setBusy(false);
+            showAuth();
+            setMode('login');
+            showMessage(error.message || 'Unable to verify your new profile.', 'error');
+            return;
+        }
+        state.signupInProgress = false;
+        setBusy(false);
+        return;
+    }
+    setBusy(false);
+    showMessage('Signed in successfully.', 'success');
 }
 
 async function handleForgotPassword() {
