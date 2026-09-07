@@ -1,15 +1,46 @@
-let courses = JSON.parse(localStorage.getItem('courses')) || {};
-let studyFiles = JSON.parse(localStorage.getItem('studyFiles')) || [];
-let plannerTasks = JSON.parse(localStorage.getItem('plannerTasks')) || [];
-let notes = localStorage.getItem('studyNotes') || '';
-let courseOutlines = JSON.parse(localStorage.getItem('courseOutlines')) || {};
+let courses = {};
+let studyFiles = [];
+let plannerTasks = [];
+let notes = '';
+let courseOutlines = {};
 let slotSelection = null;
 
-let studySessions = JSON.parse(localStorage.getItem('studySessions')) || [];
-let semesterGoals = JSON.parse(localStorage.getItem('semesterGoals')) || [];
-let weeklyReviewHistory = JSON.parse(localStorage.getItem('weeklyReviewHistory')) || [];
-let achievements = JSON.parse(localStorage.getItem('achievements')) || [];
+let studySessions = [];
+let semesterGoals = [];
+let weeklyReviewHistory = [];
+let achievements = [];
 let currentTheme = localStorage.getItem('theme') || 'light';
+
+function hydrateUserData(uid) {
+    GradeQuestStorage.setActiveUser(uid);
+    courses = GradeQuestStorage.getJson('courses', {});
+    studyFiles = GradeQuestStorage.getJson('studyFiles', []);
+    plannerTasks = GradeQuestStorage.getJson('plannerTasks', []);
+    notes = GradeQuestStorage.get('studyNotes', '') || '';
+    courseOutlines = GradeQuestStorage.getJson('courseOutlines', {});
+    studySessions = GradeQuestStorage.getJson('studySessions', []);
+    semesterGoals = GradeQuestStorage.getJson('semesterGoals', []);
+    weeklyReviewHistory = GradeQuestStorage.getJson('weeklyReviewHistory', []);
+    achievements = GradeQuestStorage.getJson('achievements', []);
+    if (typeof hydrateProductivityData === 'function') hydrateProductivityData(uid);
+}
+
+function clearUserDataState() {
+    courses = {};
+    studyFiles = [];
+    plannerTasks = [];
+    notes = '';
+    courseOutlines = {};
+    studySessions = [];
+    semesterGoals = [];
+    weeklyReviewHistory = [];
+    achievements = [];
+    if (typeof clearProductivityDataState === 'function') clearProductivityDataState();
+    if (typeof render === 'function') render();
+}
+
+window.hydrateGradeQuestData = hydrateUserData;
+window.clearGradeQuestDataState = clearUserDataState;
 
 const letterToPercent = {
     'A+': 95, 'A': 87, 'A-': 82, 'B+': 78, 'B': 75, 'B-': 72,
@@ -47,7 +78,7 @@ function applyUserConfig(name, schoolKey) {
 }
 
 function saveAchievements() {
-    localStorage.setItem('achievements', JSON.stringify(achievements));
+    GradeQuestStorage.setJson('achievements', achievements);
 }
 
 function applyTheme(theme) {
@@ -62,20 +93,27 @@ function toggleTheme() {
 }
 
 function save() {
-    localStorage.setItem('courses', JSON.stringify(courses));
+    GradeQuestStorage.setJson('courses', courses);
     render();
 }
 
 function saveStudyData() {
-    localStorage.setItem('studyFiles', JSON.stringify(studyFiles));
-    localStorage.setItem('plannerTasks', JSON.stringify(plannerTasks));
-    localStorage.setItem('studyNotes', notes);
-    localStorage.setItem('courseOutlines', JSON.stringify(courseOutlines));
+    GradeQuestStorage.setJson('studyFiles', studyFiles);
+    GradeQuestStorage.setJson('plannerTasks', plannerTasks);
+    GradeQuestStorage.set('studyNotes', notes);
+    GradeQuestStorage.setJson('courseOutlines', courseOutlines);
 }
 
 function saveStudySessions() {
-    localStorage.setItem('studySessions', JSON.stringify(studySessions));
+    GradeQuestStorage.setJson('studySessions', studySessions);
 }
+
+function stopGradeQuestStudyTimer() {
+    clearInterval(timerInterval);
+    timerRunning = false;
+}
+
+window.stopGradeQuestStudyTimer = stopGradeQuestStudyTimer;
 
 function normalizeText(value) {
     return (value || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
@@ -115,7 +153,7 @@ function ensureCourseEntry(courseCode) {
     const normalizedCode = (courseCode || 'GENERAL').toUpperCase();
     if (!courses[normalizedCode]) {
         courses[normalizedCode] = { grades: [], target: 80, units: 3 };
-        localStorage.setItem('courses', JSON.stringify(courses));
+        GradeQuestStorage.setJson('courses', courses);
     }
 }
 
@@ -670,15 +708,15 @@ function importBackupFile(event) {
         try {
             const data = JSON.parse(e.target.result);
             if (typeof data !== 'object' || !data) throw new Error('Invalid backup file.');
-            if (data.courses !== undefined) localStorage.setItem('courses', JSON.stringify(data.courses));
-            if (data.plannerTasks !== undefined) localStorage.setItem('plannerTasks', JSON.stringify(data.plannerTasks));
-            if (data.studyFiles !== undefined) localStorage.setItem('studyFiles', JSON.stringify(data.studyFiles));
-            if (data.studySessions !== undefined) localStorage.setItem('studySessions', JSON.stringify(data.studySessions));
-            if (data.semesterGoals !== undefined) localStorage.setItem('semesterGoals', JSON.stringify(data.semesterGoals));
-            if (data.courseOutlines !== undefined) localStorage.setItem('courseOutlines', JSON.stringify(data.courseOutlines));
-            if (data.weeklyReviewHistory !== undefined) localStorage.setItem('weeklyReviewHistory', JSON.stringify(data.weeklyReviewHistory));
-            if (data.achievements !== undefined) localStorage.setItem('achievements', JSON.stringify(data.achievements));
-            if (data.notes !== undefined) localStorage.setItem('studyNotes', data.notes);
+            if (data.courses !== undefined) GradeQuestStorage.setJson('courses', data.courses);
+            if (data.plannerTasks !== undefined) GradeQuestStorage.setJson('plannerTasks', data.plannerTasks);
+            if (data.studyFiles !== undefined) GradeQuestStorage.setJson('studyFiles', data.studyFiles);
+            if (data.studySessions !== undefined) GradeQuestStorage.setJson('studySessions', data.studySessions);
+            if (data.semesterGoals !== undefined) GradeQuestStorage.setJson('semesterGoals', data.semesterGoals);
+            if (data.courseOutlines !== undefined) GradeQuestStorage.setJson('courseOutlines', data.courseOutlines);
+            if (data.weeklyReviewHistory !== undefined) GradeQuestStorage.setJson('weeklyReviewHistory', data.weeklyReviewHistory);
+            if (data.achievements !== undefined) GradeQuestStorage.setJson('achievements', data.achievements);
+            if (data.notes !== undefined) GradeQuestStorage.set('studyNotes', data.notes);
             showToast('Backup restored successfully.', 'success');
             location.reload();
         } catch (error) {
@@ -697,9 +735,8 @@ async function resetAllData() {
         danger: true
     });
     if (!confirmed) return;
-    const savedTheme = localStorage.getItem('theme');
-    localStorage.clear();
-    if (savedTheme) localStorage.setItem('theme', savedTheme);
+    const activeUid = GradeQuestStorage.getActiveUser();
+    if (activeUid) GradeQuestStorage.clearUser(activeUid);
     location.reload();
 }
 
@@ -836,7 +873,7 @@ function saveSettings() {
 }
 
 function saveSemesterGoals() {
-    localStorage.setItem('semesterGoals', JSON.stringify(semesterGoals));
+    GradeQuestStorage.setJson('semesterGoals', semesterGoals);
 }
 
 function addGoal(goal) {
@@ -937,7 +974,7 @@ function computeOverallGoalsProgress() {
 }
   
 function saveWeeklyReviewHistory() {
-    localStorage.setItem('weeklyReviewHistory', JSON.stringify(weeklyReviewHistory));
+    GradeQuestStorage.setJson('weeklyReviewHistory', weeklyReviewHistory);
 }
 
 function getWeekKey(date) {
@@ -1901,7 +1938,8 @@ async function resetProfile() {
         danger: true
     });
     if (confirmed) {
-        localStorage.clear();
+        const activeUid = GradeQuestStorage.getActiveUser();
+        if (activeUid) GradeQuestStorage.clearUser(activeUid);
         location.reload();
     }
 }

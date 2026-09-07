@@ -1,9 +1,22 @@
 /* GradeQuest dashboard feature helpers — vanilla JS, localStorage only */
 
-let flashcards = JSON.parse(localStorage.getItem('flashcards')) || [];
-let dashboardConfig = JSON.parse(localStorage.getItem('dashboardConfig')) || null;
+let flashcards = [];
+let dashboardConfig = null;
 let assignmentFilter = 'all';
 let assignmentSort = 'deadline';
+
+function hydrateProductivityData(uid) {
+    flashcards = GradeQuestStorage.getJson('flashcards', [], uid);
+    dashboardConfig = GradeQuestStorage.getJson('dashboardConfig', null, uid);
+}
+
+function clearProductivityDataState() {
+    flashcards = [];
+    dashboardConfig = null;
+}
+
+window.hydrateProductivityData = hydrateProductivityData;
+window.clearProductivityDataState = clearProductivityDataState;
 
 let focusModeInterval = null;
 let focusModeRemaining = 0;
@@ -43,11 +56,11 @@ function getDashboardConfig() {
 }
 
 function saveFlashcards() {
-    localStorage.setItem('flashcards', JSON.stringify(flashcards));
+    GradeQuestStorage.setJson('flashcards', flashcards);
 }
 
 function saveDashboardConfig() {
-    localStorage.setItem('dashboardConfig', JSON.stringify(dashboardConfig));
+    GradeQuestStorage.setJson('dashboardConfig', dashboardConfig);
 }
 
 function escapeHtml(str) {
@@ -883,6 +896,14 @@ function stopFocusMode() {
     document.body.classList.remove('focus-mode-active');
     renderFocusModeTimer();
 }
+
+function stopGradeQuestFocusTimer() {
+    clearInterval(focusModeInterval);
+    focusModeRunning = false;
+    document.body.classList.remove('focus-mode-active');
+}
+
+window.stopGradeQuestFocusTimer = stopGradeQuestFocusTimer;
 
 function completeFocusMode() {
     clearInterval(focusModeInterval);

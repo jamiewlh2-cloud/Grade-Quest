@@ -165,7 +165,7 @@ window.PDFImportLearningTest = window.PDFImportLearningTest || {};
 
     function loadState() {
         try {
-            const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+            const parsed = GradeQuestStorage.getJson(STORAGE_KEY, {});
             const records = Array.isArray(parsed.records) ? parsed.records.map(record => compactRecordForStorage(record)) : [];
             return {
                 records,
@@ -185,7 +185,7 @@ window.PDFImportLearningTest = window.PDFImportLearningTest || {};
         let attemptRecords = records.slice();
         while (attemptRecords.length) {
             try {
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(buildStoredState(attemptRecords)));
+                GradeQuestStorage.setJson(STORAGE_KEY, buildStoredState(attemptRecords));
                 return {
                     records: attemptRecords,
                     futureDataset: buildFutureDataset(attemptRecords)
@@ -204,7 +204,7 @@ window.PDFImportLearningTest = window.PDFImportLearningTest || {};
             }
         }
 
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(buildStoredState([])));
+        GradeQuestStorage.setJson(STORAGE_KEY, buildStoredState([]));
         console.warn('TRAINING DATASET SAVED AS EMPTY AFTER PRUNING');
         return { records: [], futureDataset: [] };
     }

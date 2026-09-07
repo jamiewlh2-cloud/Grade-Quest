@@ -19,7 +19,7 @@ window.PDFImportLearningTestTrainingData = window.PDFImportLearningTestTrainingD
 
     function loadHybridState() {
         try {
-            const parsed = JSON.parse(localStorage.getItem(HYBRID_STORAGE_KEY) || '{}');
+            const parsed = GradeQuestStorage.getJson(HYBRID_STORAGE_KEY, {});
             return {
                 records: Array.isArray(parsed.records) ? parsed.records : []
             };
@@ -31,9 +31,9 @@ window.PDFImportLearningTestTrainingData = window.PDFImportLearningTestTrainingD
     }
 
     function saveHybridState(state) {
-        localStorage.setItem(HYBRID_STORAGE_KEY, JSON.stringify({
+        GradeQuestStorage.setJson(HYBRID_STORAGE_KEY, {
             records: Array.isArray(state.records) ? state.records : []
-        }));
+        });
     }
 
     function normalizeAssessment(assessment) {

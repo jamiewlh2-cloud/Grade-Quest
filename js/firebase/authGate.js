@@ -8,9 +8,10 @@ import {
     observeAuthState,
     sendPasswordReset
 } from './authService.js';
+import { getFirebaseAuth } from './firebaseClient.js';
 import { getUserProfile, profileIsComplete, updateUserProfile } from './userProfileService.js';
 
-const state = { mode: 'login', busy: false, initialized: false, signupInProgress: false, user: null, profile: null };
+const state = { mode: 'login', busy: false, initialized: false, signupInProgress: false, authGeneration: 0, user: null, profile: null };
 const elements = {};
 
 function cacheElements() {
@@ -75,7 +76,19 @@ function showAuth() {
     elements.authUserLabel.hidden = true;
 }
 
+function clearUserSession() {
+    state.authGeneration += 1;
+    if (typeof window.stopGradeQuestStudyTimer === 'function') window.stopGradeQuestStudyTimer();
+    if (typeof window.stopGradeQuestFocusTimer === 'function') window.stopGradeQuestFocusTimer();
+    window.GradeQuestProfile = null;
+    if (typeof window.clearGradeQuestDataState === 'function') window.clearGradeQuestDataState();
+    GradeQuestStorage.clearActiveUser();
+    state.user = null;
+    state.profile = null;
+}
+
 function showApp(user, profile) {
+    hydrateGradeQuestData(user.uid);
     state.user = user;
     state.profile = profile;
     window.GradeQuestProfile = profile;
@@ -101,16 +114,22 @@ function showApp(user, profile) {
 }
 
 async function resolveUser(user) {
+    const requestGeneration = ++state.authGeneration;
     if (state.signupInProgress) return;
     if (!user) {
+        clearUserSession();
         showAuth();
         setMode('login');
         return;
     }
+    if (state.user && state.user.uid !== user.uid) clearUserSession();
     setBusy(true);
     showMessage('Loading your profile...', 'info');
+    const isCurrentRequest = () => requestGeneration === state.authGeneration
+        && getFirebaseAuth().currentUser?.uid === user.uid;
     try {
         const profile = await getUserProfile(user.uid);
+        if (!isCurrentRequest()) return;
         if (!profile || !profileIsComplete(profile)) {
             state.user = user;
             state.profile = profile || null;
@@ -127,9 +146,9 @@ async function resolveUser(user) {
         }
         showApp(user, profile);
     } catch (error) {
-        showMessage(error.message || 'Unable to load your profile.', 'error');
+        if (isCurrentRequest()) showMessage(error.message || 'Unable to load your profile.', 'error');
     } finally {
-        setBusy(false);
+        if (isCurrentRequest()) setBusy(false);
     }
 }
 
@@ -246,7 +265,11 @@ document.addEventListener('DOMContentLoaded', () => {
     elements.authToggleButton.addEventListener('click', () => setMode(state.mode === 'login' ? 'create' : 'login'));
     elements.authForgotButton.addEventListener('click', handleForgotPassword);
     elements.authChangePasswordButton.addEventListener('click', handleChangePassword);
-    elements.authLogoutButton.addEventListener('click', async () => { await logout(); });
+    elements.authLogoutButton.addEventListener('click', async () => {
+        clearUserSession();
+        showAuth();
+        await logout();
+    });
     window.saveUserProfileFromSettings = async () => {
         const profile = {
             displayName: document.getElementById('profileDisplayName')?.value,

@@ -19,7 +19,7 @@ window.PDFImportLearningTest = window.PDFImportLearningTest || {};
 
     function loadState() {
         try {
-            const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+            const parsed = GradeQuestStorage.getJson(STORAGE_KEY, {});
             return {
                 corrections: Array.isArray(parsed.corrections) ? parsed.corrections : [],
                 positivePatterns: Array.isArray(parsed.positivePatterns) ? parsed.positivePatterns : [],
@@ -31,7 +31,7 @@ window.PDFImportLearningTest = window.PDFImportLearningTest || {};
     }
 
     function saveState(state) {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        GradeQuestStorage.setJson(STORAGE_KEY, state);
     }
 
     function similarityScore(left, right) {
