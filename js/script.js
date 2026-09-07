@@ -987,6 +987,7 @@ function getWeeklySnapshot(weekKey) {
 }
 
 function recordWeeklyReviewSnapshot() {
+    if (!GradeQuestStorage.getActiveUser()) return;
     const weekKey = getWeekKey(new Date());
     const snapshot = {
         weekKey,
