@@ -690,8 +690,9 @@ function renderTimelineWidgetHtml() {
 // =====================
 
 function generateSemesterReport() {
-    const userName = localStorage.getItem('userName') || 'Student';
-    const schoolKey = localStorage.getItem('userSchool') || 'mcmaster';
+    const profile = window.GradeQuestProfile || {};
+    const userName = profile.displayName || 'Student';
+    const schoolKey = Object.keys(ALL_SCHOOLS).find(key => key.toLowerCase() === String(profile.university || '').toLowerCase() || ALL_SCHOOLS[key].name.toLowerCase() === String(profile.university || '').toLowerCase()) || 'mcmaster';
     const school = ALL_SCHOOLS[schoolKey] || ALL_SCHOOLS.mcmaster;
     const health = computeAcademicHealth();
     const weekStats = getWeekStats(getWeekStart(new Date()));

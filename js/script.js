@@ -16,6 +16,18 @@ const letterToPercent = {
     'C+': 68, 'C': 65, 'C-': 62, 'D+': 58, 'D': 55, 'D-': 52, 'F': 35
 };
 
+function getCurrentProfile() {
+    return window.GradeQuestProfile || {};
+}
+
+function getProfileSchoolKey() {
+    const university = String(getCurrentProfile().university || '').toLowerCase();
+    return Object.keys(ALL_SCHOOLS).find(key => {
+        const school = ALL_SCHOOLS[key];
+        return key.toLowerCase() === university || String(school.name || '').toLowerCase() === university;
+    }) || 'mcmaster';
+}
+
 function applyUserConfig(name, schoolKey) {
     const school = ALL_SCHOOLS[schoolKey] || ALL_SCHOOLS.mcmaster;
     document.documentElement.style.setProperty('--primary', school.primary);
@@ -686,21 +698,15 @@ async function resetAllData() {
     });
     if (!confirmed) return;
     const savedTheme = localStorage.getItem('theme');
-    const savedName = localStorage.getItem('userName');
-    const savedSchool = localStorage.getItem('userSchool');
     localStorage.clear();
     if (savedTheme) localStorage.setItem('theme', savedTheme);
-    if (savedName) localStorage.setItem('userName', savedName);
-    if (savedSchool) localStorage.setItem('userSchool', savedSchool);
     location.reload();
 }
 
 function renderSettingsDashboard() {
     const panel = document.getElementById('settingsContainer');
     if (!panel) return;
-    const userName = localStorage.getItem('userName') || '';
-    const userSchool = localStorage.getItem('userSchool') || 'mcmaster';
-    const schoolName = ALL_SCHOOLS[userSchool] ? ALL_SCHOOLS[userSchool].name : 'School';
+    const profile = window.GradeQuestProfile || {};
     const stats = computeAppStats();
     const notifications = computeNotifications();
     const backupStatus = getBackupStatus();
@@ -711,14 +717,11 @@ function renderSettingsDashboard() {
             <div class="settings-column settings-left">
                 <div class="settings-card">
                     <h4>Profile</h4>
-                    <div class="panel-form">
-                        <input id="settingsName" placeholder="Student Name" value="${userName}">
-                        <select id="settingsSchool">${Object.keys(ALL_SCHOOLS).sort().map(key => `<option value="${key}" ${key===userSchool?'selected':''}>${ALL_SCHOOLS[key].name} (${ALL_SCHOOLS[key].province})</option>`).join('')}</select>
-                        <button class="panel-btn" onclick="saveSettings()">Save Changes</button>
-                    </div>
-                </div>
-
-                <div class="settings-card">
+                        <div class="settings-card">
+                            <h4>Profile</h4>
+                            <p class="notes-line">Manage your academic identity and preferences on the Profile page.</p>
+                            <button class="panel-btn" onclick="setActiveTab('profile')">Open Profile</button>
+                        </div>
                     <h4>Appearance</h4>
                     <div class="panel-form">
                         <div class="radio-group">
@@ -785,6 +788,39 @@ function renderSettingsDashboard() {
     renderDashboardCustomization();
 }
 
+function renderProfileDashboard() {
+    const panel = document.getElementById('profileContainer');
+    if (!panel) return;
+    const profile = getCurrentProfile();
+    panel.innerHTML = `
+        <div class="panel-card profile-page-card">
+            <div class="panel-heading">
+                <div>
+                    <p class="eyebrow">Profile</p>
+                    <h3>Your academic identity</h3>
+                    <p class="helper-text">This information is securely stored with your account.</p>
+                </div>
+            </div>
+            <div class="panel-form profile-form">
+                <label for="profileDisplayName">Name</label>
+                <input id="profileDisplayName" placeholder="Your name" value="${escapeAttr(profile.displayName || '')}">
+                <label for="profileUniversity">University</label>
+                <input id="profileUniversity" placeholder="University" value="${escapeAttr(profile.university || '')}">
+                <label for="profileProgram">Program</label>
+                <input id="profileProgram" placeholder="Program" value="${escapeAttr(profile.program || '')}">
+                <label for="profileStartYear">Start year</label>
+                <input id="profileStartYear" type="number" min="1900" max="2100" placeholder="2026" value="${profile.startYear || ''}">
+                <label for="profileTheme">Theme preference</label>
+                <select id="profileTheme">
+                    <option value="light" ${(profile.preferences?.theme || 'light') === 'light' ? 'selected' : ''}>Light mode</option>
+                    <option value="dark" ${profile.preferences?.theme === 'dark' ? 'selected' : ''}>Dark mode</option>
+                </select>
+                <button class="panel-btn" onclick="saveUserProfileFromSettings()">Save Profile</button>
+            </div>
+        </div>
+    `;
+}
+
 function applySelectedTheme() {
     const selectedTheme = document.querySelector(
         'input[name="themeOption"]:checked'
@@ -796,12 +832,7 @@ function applySelectedTheme() {
 }
 
 function saveSettings() {
-    const name = document.getElementById('settingsName').value.trim() || 'Student';
-    const schoolKey = document.getElementById('settingsSchool').value;
-    localStorage.setItem('userName', name);
-    localStorage.setItem('userSchool', schoolKey);
-    applyUserConfig(name, schoolKey);
-    showToast('Profile settings saved.', 'success');
+    if (typeof saveUserProfileFromSettings === 'function') saveUserProfileFromSettings();
 }
 
 function saveSemesterGoals() {
@@ -1460,7 +1491,7 @@ function letterFromPercent(percent) {
 }
 
 function getUserGradeScale() {
-    const schoolKey = localStorage.getItem('userSchool') || 'mcmaster';
+    const schoolKey = getProfileSchoolKey();
     const schoolConfig = ALL_SCHOOLS[schoolKey] || ALL_SCHOOLS.mcmaster;
     return GRADING_SCALES[schoolConfig.scale] || GRADING_SCALES.mcmaster;
 }
@@ -1860,26 +1891,6 @@ function updateHeroStats() {
     if (courseEl) courseEl.textContent = courseCount;
     if (fileEl) fileEl.textContent = fileCount;
     if (taskEl) taskEl.textContent = taskCount;
-}
-
-function finishOnboarding() {
-    const nameInput = document.getElementById('userNameInput');
-    const schoolSelect = document.getElementById('schoolInput');
-
-    const name = nameInput ? nameInput.value.trim() : 'Student';
-    const schoolKey = schoolSelect ? schoolSelect.value : 'mcmaster';
-
-    localStorage.setItem('userName', name);
-    localStorage.setItem('userSchool', schoolKey);
-
-    const overlay = document.getElementById('onboardingOverlay');
-    if (overlay) {
-        overlay.style.opacity = '0';
-        setTimeout(() => {
-            overlay.style.display = 'none';
-            applyUserConfig(name, schoolKey);
-        }, 500);
-    }
 }
 
 async function resetProfile() {
@@ -2377,6 +2388,7 @@ function render() {
     renderAcademicHealthDashboard();
     renderSemesterPredictor();
     renderWeeklyReviewDashboard();
+    renderProfileDashboard();
 
     // =====================
     // SETTINGS
@@ -2386,7 +2398,7 @@ function render() {
     const container = document.getElementById('classesContainer');
     const classFilter = document.getElementById('classSelector').value;
     const yearFilter = document.getElementById('yearSelector').value;
-    const schoolKey = localStorage.getItem('userSchool') || 'mcmaster';
+    const schoolKey = getProfileSchoolKey();
     const schoolConfig = ALL_SCHOOLS[schoolKey] || ALL_SCHOOLS.mcmaster;
     const gradingConfig = GRADING_SCALES[schoolConfig.scale];
 

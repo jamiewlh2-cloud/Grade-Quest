@@ -10,6 +10,7 @@ import {
     updatePassword
 } from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js';
 import { getFirebaseAuth } from './firebaseClient.js';
+import { createUserProfile } from './userProfileService.js';
 
 let authInitializationError = null;
 
@@ -53,9 +54,10 @@ export function observeAuthState(callback) {
     return onAuthStateChanged(getFirebaseAuth(), callback);
 }
 
-export function createAccount(email, password) {
+export function createAccount(email, password, profile) {
     return withAuthErrors(async () => {
         const result = await createUserWithEmailAndPassword(getFirebaseAuth(), email, password);
+        await createUserProfile(result.user, profile);
         await sendEmailVerification(result.user);
         return result.user;
     });

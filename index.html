@@ -43,7 +43,19 @@ Date Created: March 13, 2026
             <form id="authForm" novalidate>
                 <div id="authNameGroup" class="input-group" hidden>
                     <label for="authName">Name</label>
-                    <input id="authName" name="name" type="text" autocomplete="name">
+                    <input id="authName" name="name" type="text" autocomplete="name" required>
+                </div>
+                <div id="authUniversityGroup" class="input-group" hidden>
+                    <label for="authUniversity">University</label>
+                    <input id="authUniversity" name="university" type="text" autocomplete="organization">
+                </div>
+                <div id="authProgramGroup" class="input-group" hidden>
+                    <label for="authProgram">Program</label>
+                    <input id="authProgram" name="program" type="text" autocomplete="organization-title">
+                </div>
+                <div id="authStartYearGroup" class="input-group" hidden>
+                    <label for="authStartYear">Start year</label>
+                    <input id="authStartYear" name="startYear" type="number" min="1900" max="2100" inputmode="numeric">
                 </div>
                 <div class="input-group">
                     <label for="authEmail">Email</label>
@@ -65,26 +77,6 @@ Date Created: March 13, 2026
             </div>
         </div>
     </div>
-    <div id="onboardingOverlay" class="onboarding-screen">
-        <div class="onboarding-card">
-            <div class="logo-icon">🎓</div>
-            <h2>Welcome to GradeQuest</h2>
-            <p>Let's personalize your academic dashboard.</p>
-
-                <div class="input-group">
-                    <label for="userNameInput">Your name</label>
-                <input type="text" id="userNameInput" placeholder="What is your name?">
-            </div>
-
-            <div class="input-group">
-                <label>Select your School:</label>
-                <select id="schoolInput"></select>
-            </div>
-
-            <button onclick="finishOnboarding()" class="start-btn">Start Tracking</button>
-        </div>
-    </div>
-
     <div class="container">
         <header>
             <div>
@@ -137,6 +129,7 @@ Date Created: March 13, 2026
                 <option value="files">School Files</option>
                 <option value="planner">Planner</option>
                 <option value="notes">Notes</option>
+                <option value="profile">Profile</option>
                 <option value="settings">Settings</option>
             </select>
         </div>
@@ -154,6 +147,7 @@ Date Created: March 13, 2026
             <button class="tab-btn" data-tab="files" onclick="setActiveTab('files')">School Files</button>
             <button class="tab-btn" data-tab="planner" onclick="setActiveTab('planner')">Planner</button>
             <button class="tab-btn" data-tab="notes" onclick="setActiveTab('notes')">Notes</button>
+            <button class="tab-btn" data-tab="profile" onclick="setActiveTab('profile')">Profile</button>
             <button class="tab-btn" data-tab="settings" onclick="setActiveTab('settings')">Settings</button>
         </div>
 
@@ -472,6 +466,10 @@ Date Created: March 13, 2026
             </div>
         </section>
 
+        <section id="profilePanel" class="dashboard-panel">
+            <div id="profileContainer"></div>
+        </section>
+
         <section id="settingsPanel" class="dashboard-panel">
             <div class="panel-card">
                 <div class="panel-heading">
@@ -583,19 +581,6 @@ Date Created: March 13, 2026
     <script src="pdfImportLearningTest/learningImporter.js"></script>
     <script src="firebase-config.js"></script>
     <script type="module" src="js/firebase/authGate.js"></script>
-    <script>
-        const schoolInput = document.getElementById('schoolInput');
-        if (schoolInput) {
-            schoolInput.innerHTML = '';
-            Object.keys(ALL_SCHOOLS).sort((a, b) => ALL_SCHOOLS[a].name.localeCompare(ALL_SCHOOLS[b].name))
-                .forEach(key => {
-                    const opt = document.createElement('option');
-                    opt.value = key;
-                    opt.textContent = `${ALL_SCHOOLS[key].name} (${ALL_SCHOOLS[key].province})`;
-                    schoolInput.appendChild(opt);
-                });
-        }
-    </script>
     <script src="js/pwa.js"></script>
 </body>
 

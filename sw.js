@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'gradequest-shell-v2';
+const CACHE_VERSION = 'gradequest-shell-v3';
 const RUNTIME_CACHE = 'gradequest-runtime-v1';
 const CDN_ASSETS = [
     'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js',
@@ -20,7 +20,7 @@ const APP_SHELL = [
     './pdfImportLearningTest/regressionRunner.js', './pdfImportLearningTest/ui/learningPreview.js',
     './pdfImportLearningTest/learningImporter.js', './js/pwa.js', './js/ui/feedback.js',
     './js/firebase/firebaseConfig.js', './js/firebase/firebaseClient.js', './js/firebase/authService.js',
-    './js/firebase/authGate.js', './js/firebase/firestoreService.js',
+    './js/firebase/authGate.js', './js/firebase/firestoreService.js', './js/firebase/userProfileService.js',
     './manifest.json',
     './icons/icon-192.svg', './icons/icon-512.svg'
 ];

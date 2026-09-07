@@ -8,15 +8,18 @@ import {
     observeAuthState,
     sendPasswordReset
 } from './authService.js';
+import { getUserProfile, profileIsComplete, updateUserProfile } from './userProfileService.js';
 
-const state = { mode: 'login', busy: false, initialized: false };
+const state = { mode: 'login', busy: false, initialized: false, user: null, profile: null };
 const elements = {};
 
 function cacheElements() {
     [
         'authOverlay', 'authTitle', 'authDescription', 'authMessage', 'authForm',
         'authNameGroup', 'authName', 'authEmail', 'authPassword', 'authPasswordGroup',
-        'authConfirmGroup', 'authConfirmPassword', 'authSubmitButton', 'authForgotButton',
+        'authUniversityGroup', 'authUniversity', 'authProgramGroup', 'authProgram',
+        'authStartYearGroup', 'authStartYear', 'authConfirmGroup', 'authConfirmPassword',
+        'authSubmitButton', 'authForgotButton',
         'authToggleButton', 'authChangePasswordButton',
         'authLogoutButton', 'authUserLabel'
     ].forEach(id => { elements[id] = document.getElementById(id); });
@@ -41,14 +44,24 @@ function setBusy(busy) {
 function setMode(mode) {
     state.mode = mode;
     const isCreate = mode === 'create';
-    elements.authTitle.textContent = isCreate ? 'Create your GradeQuest account' : 'Sign in to GradeQuest';
+    const isProfile = mode === 'profile';
+    const showProfileFields = isCreate || isProfile;
+    elements.authTitle.textContent = isCreate ? 'Create your GradeQuest account' : isProfile ? 'Complete your profile' : 'Sign in to GradeQuest';
     elements.authDescription.textContent = isCreate
-        ? 'Use an email and password to keep your academic data tied to your account.'
-        : 'Your courses, grades, imports, and training records stay associated with your account.';
-    elements.authNameGroup.hidden = !isCreate;
+        ? 'Set up your account and academic profile in one step.'
+        : isProfile
+            ? 'Add your academic details to finish setting up your account.'
+            : 'Your courses, grades, imports, and training records stay associated with your account.';
+    elements.authNameGroup.hidden = !showProfileFields;
+    elements.authUniversityGroup.hidden = !showProfileFields;
+    elements.authProgramGroup.hidden = !showProfileFields;
+    elements.authStartYearGroup.hidden = !showProfileFields;
     elements.authConfirmGroup.hidden = !isCreate;
     elements.authForgotButton.hidden = isCreate;
-    elements.authSubmitButton.textContent = isCreate ? 'Create account' : 'Sign in';
+    elements.authToggleButton.hidden = isProfile;
+    elements.authSubmitButton.textContent = isCreate ? 'Create account' : isProfile ? 'Save profile' : 'Sign in';
+    elements.authPasswordGroup.hidden = isProfile;
+    elements.authPassword.required = !isProfile;
     elements.authToggleButton.textContent = isCreate ? 'Already have an account? Sign in' : 'Create an account';
     elements.authPassword.autocomplete = isCreate ? 'new-password' : 'current-password';
     showMessage('');
@@ -62,7 +75,16 @@ function showAuth() {
     elements.authUserLabel.hidden = true;
 }
 
-function showApp(user) {
+function showApp(user, profile) {
+    state.user = user;
+    state.profile = profile;
+    window.GradeQuestProfile = profile;
+    applyTheme(profile.preferences?.theme || 'light');
+    const profileSchool = Object.values(ALL_SCHOOLS || {}).find(school => String(school.name || '').toLowerCase() === String(profile.university || '').toLowerCase());
+    document.getElementById('mainTitle').textContent = `${profile.displayName}'s GradeQuest`;
+    document.getElementById('profileSubtitle').textContent = profileSchool
+        ? `${profileSchool.name} • ${profileSchool.province}`
+        : profile.university;
     document.body.classList.remove('auth-required');
     elements.authOverlay.hidden = true;
     elements.authUserLabel.textContent = user.email || 'Signed in';
@@ -75,6 +97,39 @@ function showApp(user) {
         initGlobalSearch();
         initApp();
     }
+    if (typeof render === 'function') render();
+}
+
+async function resolveUser(user) {
+    if (!user) {
+        showAuth();
+        setMode('login');
+        return;
+    }
+    setBusy(true);
+    showMessage('Loading your profile...', 'info');
+    try {
+        const profile = await getUserProfile(user.uid);
+        if (!profile || !profileIsComplete(profile)) {
+            state.user = user;
+            state.profile = profile || null;
+            elements.authEmail.value = user.email || '';
+            elements.authEmail.disabled = true;
+            elements.authName.value = profile?.displayName || '';
+            elements.authUniversity.value = profile?.university || '';
+            elements.authProgram.value = profile?.program || '';
+            elements.authStartYear.value = profile?.startYear || '';
+            showAuth();
+            setMode('profile');
+            showMessage('Complete your profile to continue.', 'info');
+            return;
+        }
+        showApp(user, profile);
+    } catch (error) {
+        showMessage(error.message || 'Unable to load your profile.', 'error');
+    } finally {
+        setBusy(false);
+    }
 }
 
 async function handleSubmit(event) {
@@ -82,12 +137,35 @@ async function handleSubmit(event) {
     if (state.busy) return;
     const email = elements.authEmail.value.trim();
     const password = elements.authPassword.value;
+    const profile = {
+        displayName: elements.authName.value,
+        university: elements.authUniversity.value,
+        program: elements.authProgram.value,
+        startYear: elements.authStartYear.value,
+        preferences: { theme: 'light' }
+    };
+    if ((state.mode === 'create' || state.mode === 'profile') && !profileIsComplete(profile)) {
+        showMessage('Enter your name, university, program, and a valid start year.', 'error');
+        return;
+    }
+    if (state.mode === 'profile') {
+        setBusy(true);
+        const result = await updateUserProfile(state.user.uid, profile).then(value => ({ ok: true, value })).catch(error => ({ ok: false, error: error.message }));
+        setBusy(false);
+        if (!result.ok) {
+            showMessage(result.error, 'error');
+            return;
+        }
+        showApp(state.user, result.value);
+        showToast('Profile completed successfully.', 'success');
+        return;
+    }
     if (state.mode === 'create' && password !== elements.authConfirmPassword.value) {
         showMessage('Passwords do not match.');
         return;
     }
     setBusy(true);
-    const result = state.mode === 'create' ? await createAccount(email, password) : await login(email, password);
+    const result = state.mode === 'create' ? await createAccount(email, password, profile) : await login(email, password);
     setBusy(false);
     if (!result.ok) {
         showMessage(result.error);
@@ -133,7 +211,7 @@ async function start() {
     }
     setBusy(false);
     showMessage('');
-    observeAuthState(user => user ? showApp(user) : showAuth());
+    observeAuthState(resolveUser);
 }
 
 elements.start = start;
@@ -144,6 +222,27 @@ document.addEventListener('DOMContentLoaded', () => {
     elements.authForgotButton.addEventListener('click', handleForgotPassword);
     elements.authChangePasswordButton.addEventListener('click', handleChangePassword);
     elements.authLogoutButton.addEventListener('click', async () => { await logout(); });
+    window.saveUserProfileFromSettings = async () => {
+        const profile = {
+            displayName: document.getElementById('profileDisplayName')?.value,
+            university: document.getElementById('profileUniversity')?.value,
+            program: document.getElementById('profileProgram')?.value,
+            startYear: document.getElementById('profileStartYear')?.value,
+            preferences: {
+                theme: document.getElementById('profileTheme')?.value || document.querySelector('input[name="themeOption"]:checked')?.value || state.profile?.preferences?.theme || 'light'
+            }
+        };
+        const result = await updateUserProfile(state.user.uid, profile).then(value => ({ ok: true, value })).catch(error => ({ ok: false, error: error.message }));
+        if (!result.ok) {
+            showToast(result.error, 'error');
+            return;
+        }
+        state.profile = result.value;
+        window.GradeQuestProfile = result.value;
+        applyTheme(result.value.preferences?.theme || 'light');
+        showToast('Profile saved.', 'success');
+        render();
+    };
     setMode('login');
 });
 
