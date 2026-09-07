@@ -245,7 +245,9 @@ button:disabled {
 
 body.auth-required > .container,
 body.auth-required > #globalSearchOverlay,
-body.auth-required > #calendarPopup,
+body.auth-required > #calendarPopup {
+    display: none;
+}
 
 .pwa-status {
     top: 12px;
