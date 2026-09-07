@@ -2,10 +2,7 @@ const CACHE_VERSION = 'gradequest-shell-v3';
 const RUNTIME_CACHE = 'gradequest-runtime-v1';
 const CDN_ASSETS = [
     'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js',
-    'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js',
-    'https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js',
-    'https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js',
-    'https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js'
+    'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js'
 ];
 const APP_SHELL = [
     './', './index.html', './css/style.css', './js/schools.js', './js/script.js',
