@@ -1,0 +1,8 @@
+window.GRADEQUEST_FIREBASE_CONFIG = {
+    apiKey: "replace-with-firebase-web-api-key",
+    authDomain: "replace-with-project.firebaseapp.com",
+    projectId: "replace-with-project-id",
+    storageBucket: "replace-with-project.firebasestorage.app",
+    messagingSenderId: "replace-with-sender-id",
+    appId: "replace-with-app-id"
+};

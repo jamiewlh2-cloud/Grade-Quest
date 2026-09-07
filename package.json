@@ -1,0 +1,10 @@
+{
+    "name": "gradequest",
+    "private": true,
+    "version": "1.0.0",
+    "type": "module",
+    "scripts": {
+        "build": "node scripts/generate-firebase-config.mjs",
+        "validate:deployment": "node scripts/validate-deployment.mjs"
+    }
+}

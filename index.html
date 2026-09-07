@@ -11,51 +11,592 @@ Date Created: March 13, 2026
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GradeQuest - Academic Tracker</title>
+    <title>GradeQuest - Academic Hub</title>
+    <meta name="theme-color" content="#6366f1">
+    <meta name="description" content="GradeQuest academic dashboard for courses, grades, assessments, and study planning.">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="GradeQuest">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icons/icon-192.svg">
     <link rel="stylesheet" href="css/style.css">
 </head>
 
 <body>
-    <div class="container">
-        <h1>Grade Tracker</h1>
-
-        <div id="gpaSummary" class="gpa-card">
-            <label>Selected Period GPA</label>
-            <div id="totalGpa" class="gpa-val">0.00</div>
-        </div>
-
-        <div class="setup-section">
-            <input type="text" id="className" placeholder="Course Name (e.g. COMPSCI_1XD3)">
-            <select id="classUnits" style="width: 100px;">
-                <option value="3">3 Units</option>
-                <option value="6">6 Units</option>
-                <option value="1.5">1.5 Units</option>
-            </select>
-            <button onclick="addClass()">+ Create Class</button>
-        </div>
-
-        <div class="view-controls">
-            <div class="control-group">
-                <label>Year:</label>
-                <select id="yearSelector" onchange="render()">
-                    <option value="all">All Years</option>
-                    <option value="1">Year 1</option>
-                    <option value="2">Year 2</option>
-                    <option value="3">Year 3</option>
-                    <option value="4">Year 4</option>
-                </select>
-            </div>
-            <div class="control-group">
-                <label>Course:</label>
-                <select id="classSelector" onchange="render()">
-                    <option value="all">All Classes</option>
-                </select>
-            </div>
-        </div>
-
-        <div id="classesContainer"></div>
+    <div id="offlineIndicator" class="pwa-status pwa-status-offline" role="status" aria-live="polite" hidden>
+        <span class="pwa-status-dot" aria-hidden="true"></span>
+        <span>You are offline. Saved GradeQuest data is still available.</span>
     </div>
+    <div id="pwaUpdatePrompt" class="pwa-prompt" role="status" aria-live="polite" hidden>
+        <span>A new version of GradeQuest is ready.</span>
+        <button id="pwaUpdateButton" type="button" class="secondary-btn">Update</button>
+    </div>
+    <div id="toastRegion" class="toast-region" role="status" aria-live="polite" aria-atomic="true"></div>
+    <div id="authOverlay" class="auth-overlay" role="dialog" aria-modal="true" aria-labelledby="authTitle">
+        <div class="auth-card">
+            <div class="logo-icon" aria-hidden="true">🎓</div>
+            <p class="eyebrow">GradeQuest</p>
+            <h2 id="authTitle">Sign in to GradeQuest</h2>
+            <p id="authDescription" class="auth-description">Your courses, grades, imports, and training records stay associated with your account.</p>
+            <div id="authMessage" class="auth-message" role="status" aria-live="polite" hidden></div>
+            <form id="authForm" novalidate>
+                <div id="authNameGroup" class="input-group" hidden>
+                    <label for="authName">Name</label>
+                    <input id="authName" name="name" type="text" autocomplete="name">
+                </div>
+                <div class="input-group">
+                    <label for="authEmail">Email</label>
+                    <input id="authEmail" name="email" type="email" autocomplete="email" required>
+                </div>
+                <div id="authPasswordGroup" class="input-group">
+                    <label for="authPassword">Password</label>
+                    <input id="authPassword" name="password" type="password" autocomplete="current-password" minlength="6" required>
+                </div>
+                <div id="authConfirmGroup" class="input-group" hidden>
+                    <label for="authConfirmPassword">Confirm password</label>
+                    <input id="authConfirmPassword" name="confirmPassword" type="password" autocomplete="new-password" minlength="6">
+                </div>
+                <button id="authSubmitButton" type="submit" class="start-btn">Sign in</button>
+            </form>
+            <div class="auth-actions">
+                <button id="authForgotButton" type="button" class="auth-link">Forgot password?</button>
+                <button id="authToggleButton" type="button" class="auth-link">Create an account</button>
+            </div>
+        </div>
+    </div>
+    <div id="onboardingOverlay" class="onboarding-screen">
+        <div class="onboarding-card">
+            <div class="logo-icon">🎓</div>
+            <h2>Welcome to GradeQuest</h2>
+            <p>Let's personalize your academic dashboard.</p>
+
+                <div class="input-group">
+                    <label for="userNameInput">Your name</label>
+                <input type="text" id="userNameInput" placeholder="What is your name?">
+            </div>
+
+            <div class="input-group">
+                <label>Select your School:</label>
+                <select id="schoolInput"></select>
+            </div>
+
+            <button onclick="finishOnboarding()" class="start-btn">Start Tracking</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <header>
+            <div>
+                <h1 id="mainTitle">Grade Tracker</h1>
+                <p id="profileSubtitle" class="subtitle">Your personal academic hub</p>
+            </div>
+            <div class="header-actions">
+                <span id="authUserLabel" class="auth-user-label" hidden></span>
+                <button id="authChangePasswordButton" type="button" class="secondary-btn auth-header-action" hidden>Change password</button>
+                <button id="authLogoutButton" type="button" class="secondary-btn auth-header-action" hidden>Log out</button>
+                <button id="pwaInstallButton" class="pwa-install-button" type="button" title="Install GradeQuest">Install App</button>
+                <button class="search-trigger" onclick="openGlobalSearch()" title="Search (Ctrl+K)">🔍 Search</button>
+                <button onclick="resetProfile()" class="settings-link">Reset Profile</button>
+            </div>
+        </header>
+
+        <div class="hero-card">
+            <div>
+                <p class="eyebrow">Student Dashboard</p>
+                <h2>Keep grades, files, deadlines, and notes in one place.</h2>
+            </div>
+            <div class="hero-stats">
+                <div class="hero-stat">
+                    <span id="heroCourses">0</span>
+                    <small>Courses</small>
+                </div>
+                <div class="hero-stat">
+                    <span id="heroFiles">0</span>
+                    <small>Files</small>
+                </div>
+                <div class="hero-stat">
+                    <span id="heroTasks">0</span>
+                    <small>Tasks</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="mobile-nav-shell">
+            <label class="mobile-nav-label" for="mobileTabSelect">Navigate</label>
+            <select id="mobileTabSelect" class="mobile-tab-select" onchange="setActiveTab(this.value)">
+                <option value="home">Home</option>
+                <option value="grades">Grades</option>
+                <option value="courses">Courses</option>
+                <option value="assignments">Assignments</option>
+                <option value="goals">Goals</option>
+                <option value="predictor">Semester Predictor</option>
+                <option value="weekly">Weekly Review</option>
+                <option value="study">Study Center</option>
+                <option value="flashcards">Flashcards</option>
+                <option value="files">School Files</option>
+                <option value="planner">Planner</option>
+                <option value="notes">Notes</option>
+                <option value="settings">Settings</option>
+            </select>
+        </div>
+
+        <div class="tab-nav">
+            <button class="tab-btn active" data-tab="home" onclick="setActiveTab('home')">Home</button>
+            <button class="tab-btn" data-tab="grades" onclick="setActiveTab('grades')">Grades</button>
+            <button class="tab-btn" data-tab="courses" onclick="setActiveTab('courses')">Courses</button>
+            <button class="tab-btn" data-tab="assignments" onclick="setActiveTab('assignments')">Assignments</button>
+            <button class="tab-btn" data-tab="goals" onclick="setActiveTab('goals')">Goals</button>
+            <button class="tab-btn" data-tab="predictor" onclick="setActiveTab('predictor')">Semester Predictor</button>
+            <button class="tab-btn" data-tab="weekly" onclick="setActiveTab('weekly')">Weekly Review</button>
+            <button class="tab-btn" data-tab="study" onclick="setActiveTab('study')">Study Center</button>
+            <button class="tab-btn" data-tab="flashcards" onclick="setActiveTab('flashcards')">Flashcards</button>
+            <button class="tab-btn" data-tab="files" onclick="setActiveTab('files')">School Files</button>
+            <button class="tab-btn" data-tab="planner" onclick="setActiveTab('planner')">Planner</button>
+            <button class="tab-btn" data-tab="notes" onclick="setActiveTab('notes')">Notes</button>
+            <button class="tab-btn" data-tab="settings" onclick="setActiveTab('settings')">Settings</button>
+        </div>
+
+        <section id="homePanel" class="dashboard-panel active-panel">
+            <div class="hub-shell">
+                <div class="hub-intro">
+                    <p class="eyebrow">Home Hub</p>
+                    <h3>Your study world, one tap away.</h3>
+                    <p>Jump into your grades, deadlines, resources, and notes with animated previews that keep the whole experience feeling alive.</p>
+                </div>
+                
+                <div class="countdown-widget">
+                    <button class="carousel-arrow left" onclick="cycleCountdownPrev()">‹</button>
+                    <div id="countdownDisplay" class="countdown-display">
+                        <div class="countdown-item">
+                            <p class="countdown-label">No deadlines set</p>
+                            <div class="countdown-days">—</div>
+                        </div>
+                    </div>
+                    <button class="carousel-arrow right" onclick="cycleCountdownNext()">›</button>
+                    <div class="carousel-dots">
+                        <div id="countdownDots"></div>
+                    </div>
+                </div>
+
+                <div id="hubWidgets" class="widget-grid"></div>
+            </div>
+        </section>
+
+
+        <section id="gradesPanel" class="dashboard-panel">
+            <div id="gpaSummary" class="gpa-card">
+                <label id="gpaLabel">Selected Period GPA</label>
+                <div id="totalGpa" class="gpa-val">0.00</div>
+            </div>
+
+            <div class="setup-section">
+                <input type="text" id="className" placeholder="Course Name (e.g. COMPSCI_1XD3)">
+                <select id="classUnits" style="width: 120px;">
+                    <option value="3">3 Units</option>
+                    <option value="6">6 Units</option>
+                    <option value="1.5">1.5 Units</option>
+                </select>
+                <button onclick="addClass()">+ Create Class</button>
+            </div>
+
+            <div class="view-controls">
+                <div class="control-group">
+                    <label>Year:</label>
+                    <select id="yearSelector" onchange="render()">
+                        <option value="all">All Years</option>
+                        <option value="1">Year 1</option>
+                        <option value="2">Year 2</option>
+                        <option value="3">Year 3</option>
+                        <option value="4">Year 4</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label>Filter Course:</label>
+                    <select id="classSelector" onchange="render()">
+                        <option value="all">All Classes</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="grade-chat-card panel-card">
+                <div class="panel-heading">
+                    <div>
+                        <p class="eyebrow">Grade Coach</p>
+                        <h3>Ask what you need on the final, midterm, or rest of your course.</h3>
+                    </div>
+                </div>
+                <div id="gradeChatWindow" class="chat-window">
+                    <div class="chat-message bot">
+                        Hello! Ask questions like:
+                        <ul>
+                            <li><strong>What do I need on the final to get 85% in COMPSCI_1XD3?</strong></li>
+                            <li><strong>If I get 90% on the final, what will my overall be?</strong></li>
+                            <li><strong>If I get 80% on the rest of the course, what will my grade be?</strong></li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="chat-input-row">
+                    <input type="text" id="gradeChatInput" placeholder="Ask about your final, remaining work, or overall grade..." />
+                    <button onclick="handleGradeChat()" class="chat-send-btn">Ask</button>
+                </div>
+            </div>
+
+            <div id="classesContainer"></div>
+        </section>
+
+        <section id="coursesPanel" class="dashboard-panel">
+            <div class="panel-card">
+                <div class="panel-heading">
+                    <div>
+                        <p class="eyebrow">Courses</p>
+                        <h3>Your Course Dashboard</h3>
+                    </div>
+                </div>
+                <div id="coursesContainer" class="courses-grid"></div>
+            </div>
+        </section>
+
+        <section id="goalsPanel" class="dashboard-panel">
+            <div class="panel-card">
+                <div class="panel-heading">
+                    <div>
+                        <p class="eyebrow">Goals</p>
+                        <h3>Semester Goals Dashboard</h3>
+                    </div>
+                </div>
+                <div id="goalsContainer" class="panel-body"></div>
+            </div>
+        </section>
+
+        <section id="weeklyPanel" class="dashboard-panel">
+            <div class="panel-card">
+                <div class="panel-heading">
+                    <div>
+                        <p class="eyebrow">Weekly Review</p>
+                        <h3>Study and assignment recap</h3>
+                    </div>
+                </div>
+                <div id="weeklyContainer" class="panel-body"></div>
+            </div>
+        </section>
+
+        <section id="predictorPanel" class="dashboard-panel">
+            <div class="panel-card">
+                <div class="panel-heading">
+                    <div>
+                        <p class="eyebrow">Semester Predictor</p>
+                        <h3>Forecast your GPA and course outcomes</h3>
+                    </div>
+                </div>
+                <div id="predictorContainer" class="panel-body"></div>
+            </div>
+        </section>
+
+        <section id="assignmentsPanel" class="dashboard-panel">
+            <div class="panel-card">
+                <div class="panel-heading">
+                    <div>
+                        <p class="eyebrow">Assignments</p>
+                        <h3>Track deadlines and task status</h3>
+                    </div>
+                </div>
+                <div id="assignmentsContainer" class="panel-body"></div>
+            </div>
+        </section>
+
+        <section id="studyPanel" class="dashboard-panel">
+            <div class="panel-card">
+                <div class="panel-heading">
+                    <div>
+                        <p class="eyebrow">Study Center</p>
+                        <h3>Timer & Analytics</h3>
+                    </div>
+                </div>
+                <div id="studyContainer" class="study-grid"></div>
+                <div id="advancedStudyAnalytics" class="panel-body"></div>
+            </div>
+        </section>
+
+        <section id="flashcardsPanel" class="dashboard-panel">
+            <div class="panel-card">
+                <div class="panel-heading">
+                    <div>
+                        <p class="eyebrow">Flashcards</p>
+                        <h3>Spaced repetition review</h3>
+                    </div>
+                </div>
+                <div id="flashcardsContainer" class="panel-body"></div>
+            </div>
+        </section>
+
+        <section id="focusPanel" class="dashboard-panel">
+            <div class="panel-card">
+                <div class="panel-heading">
+                    <div>
+                        <p class="eyebrow">Focus</p>
+                        <h3>Focus Dashboard & Priorities</h3>
+                    </div>
+                </div>
+                <div id="focusContainer" class="panel-body"></div>
+                <div id="focusModeContainer" class="panel-body"></div>
+            </div>
+        </section>
+
+        <section id="healthPanel" class="dashboard-panel">
+            <div class="panel-card">
+                <div class="panel-heading">
+                    <div>
+                        <p class="eyebrow">Academic Health</p>
+                        <h3>Single view of your academic standing</h3>
+                    </div>
+                </div>
+                <div id="healthContainer" class="panel-body"></div>
+            </div>
+        </section>
+
+        <section id="filesPanel" class="dashboard-panel">
+            <div class="panel-card">
+                <div class="panel-heading">
+                    <div>
+                        <p class="eyebrow">Resources</p>
+                        <h3>School files and references</h3>
+                    </div>
+                </div>
+                <div class="panel-form">
+                    <input type="text" id="fileTitle" placeholder="File / topic name">
+                    <input type="text" id="fileCourse" placeholder="Course code">
+                    <select id="fileCategory">
+                        <option value="Assignment">Assignment</option>
+                        <option value="Lecture">Lecture</option>
+                        <option value="Exam">Exam</option>
+                        <option value="Project">Project</option>
+                        <option value="Reading">Reading</option>
+                        <option value="Other">Other</option>
+                    </select>
+                    <label class=\"file-input-label\">
+                        <span class=\"file-label-text\">📎 Choose File (Image or PDF)</span>
+                        <input type=\"file\" id=\"resourceUpload\" class=\"upload-input\" accept=\"image/*,.pdf\" />
+                    </label>
+                    <textarea id="fileNotes" placeholder="Add notes, links, or reminders"></textarea>
+                    <textarea id="outlineInput" placeholder="Paste a course outline here. Example: Assignment 1 - 10%, Midterm - 30%, Final Exam - 40%"></textarea>
+                    <p class="helper-text">Upload a scanned image or PDF, or paste a course outline to connect weights to your grade tracker.</p>
+                    <button onclick="addStudyFile()" class="panel-btn">
+                        Save Resource
+                    </button>
+
+                    <button 
+                        id="importCourseOutlineBtn"
+                        class="panel-btn"
+                        type="button">
+                        Import Course Outline PDF
+                    </button>
+
+                    <div class="form-row">
+                        <label>Importer Mode</label>
+                        <select id="importModeSelect">
+                            <option value="stable">Use Stable Importer</option>
+                            <option value="learning">Use Learning Importer</option>
+                        </select>
+                    </div>
+
+                    <p class="helper-text">Stable importer writes to production data. Learning importer stores review feedback separately.</p>
+
+<input
+    type="file"
+    id="courseOutlineFile"
+    accept=".pdf"
+    style="display:none;">
+                </div>
+                <div id="outlinePreview" class="outline-preview"></div>
+                <div id="fileList" class="resource-list"></div>
+            </div>
+        </section>
+
+        <section id="plannerPanel" class="dashboard-panel">
+            <div class="panel-card full-width-card">
+                <div class="panel-heading calendar-header">
+                    <div>
+                        <p class="eyebrow">Academic Calendar</p>
+                        <h3 id="calendarTitle">Calendar & Planner</h3>
+                    </div>
+                    <div class="calendar-controls">
+                        <div class="view-toggle">
+                            <button id="monthViewBtn" onclick="setCalendarView('month')" class="view-toggle-btn active">Month</button>
+                            <button id="weekViewBtn" onclick="setCalendarView('week')" class="view-toggle-btn">Week</button>
+                            <button id="timelineViewBtn" onclick="setCalendarView('timeline')" class="view-toggle-btn">Timeline</button>
+                        </div>
+                        <div class="calendar-nav">
+                            <button onclick="previousPeriod()" class="calendar-nav-btn">← Prev</button>
+                            <button onclick="todayPeriod()" class="calendar-nav-btn today">Today</button>
+                            <button onclick="nextPeriod()" class="calendar-nav-btn">Next →</button>
+                        </div>
+                    </div>
+                </div>
+                <div id="calendarContainer" class="calendar-month-view"></div>
+                <div id="calendarEventsList" class="calendar-events-list"></div>
+            </div>
+            <div class="panel-card">
+                <div class="panel-heading">
+                    <div>
+                        <p class="eyebrow">Planner</p>
+                        <h3>Track deadlines and priorities</h3>
+                    </div>
+                </div>
+                <div class="panel-form">
+                    <input type="text" id="taskTitle" placeholder="Task name">
+                    <input type="text" id="taskCourse" placeholder="Course / subject">
+                    <input type="date" id="taskDeadline">
+                    <select id="taskPriority">
+                        <option value="High">High priority</option>
+                        <option value="Medium">Medium priority</option>
+                        <option value="Low">Low priority</option>
+                    </select>
+                    <button onclick="addPlannerTask()" class="panel-btn">Add Task</button>
+                </div>
+                <div id="plannerTimeline" class="timeline"></div>
+                <div id="plannerList" class="task-list"></div>
+            </div>
+        </section>
+
+        <section id="notesPanel" class="dashboard-panel">
+            <div class="panel-card">
+                <div class="panel-heading">
+                    <div>
+                        <p class="eyebrow">Notes</p>
+                        <h3>Capture ideas and reminders</h3>
+                    </div>
+                </div>
+                <textarea id="notesInput" class="notes-textarea" placeholder="Jot down ideas, study plans, or anything else you want to remember..."></textarea>
+                <button onclick="saveNotes()" class="panel-btn">Save Notes</button>
+            </div>
+        </section>
+
+        <section id="settingsPanel" class="dashboard-panel">
+            <div class="panel-card">
+                <div class="panel-heading">
+                    <div>
+                        <p class="eyebrow">Settings</p>
+                        <h3>Personalize GradeQuest</h3>
+                    </div>
+                </div>
+                <div id="settingsContainer" class="settings-grid"></div>
+            </div>
+        </section>
+    </div>
+
+    <div id="globalSearchOverlay" class="modal-overlay hidden" onclick="if(event.target===this)closeGlobalSearch()">
+        <div class="modal-card search-modal">
+            <div class="modal-header">
+                <div>
+                    <h3>Global Search</h3>
+                    <p class="helper-text">Search courses, tasks, files, notes, flashcards, and outlines</p>
+                </div>
+                <button class="secondary-btn" onclick="closeGlobalSearch()">×</button>
+            </div>
+            <div class="modal-body">
+                <input type="text" id="globalSearchInput" class="search-input" placeholder="Search GradeQuest... (Ctrl+K)" oninput="renderSearchResults(this.value)" autocomplete="off">
+                <div id="globalSearchResults" class="search-results"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="calendarPopup" class="modal-overlay hidden">
+        <div class="modal-card">
+            <div class="modal-header">
+                <div>
+                    <h3>Schedule a planner item</h3>
+                    <p class="helper-text">Create a due task or a timed event directly from the calendar.</p>
+                </div>
+                <button class="secondary-btn" onclick="closeCalendarPopup()">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-row">
+                    <label>Type</label>
+                    <select id="popupItemType" onchange="toggleCalendarPopupFields()">
+                        <option value="task">Task / Deadline</option>
+                        <option value="event">Event</option>
+                    </select>
+                </div>
+                <div class="form-row">
+                    <label>Title</label>
+                    <input type="text" id="popupTitle" placeholder="Homework, Lecture, Study Session...">
+                </div>
+                <div class="form-row">
+                    <label>Course / Subject</label>
+                    <input type="text" id="popupCourse" placeholder="COMPSCI_1XD3">
+                </div>
+                <div class="form-row">
+                    <label>Date</label>
+                    <input type="date" id="popupDate">
+                </div>
+                <div class="form-row popup-time-fields">
+                    <label>Start time</label>
+                    <input type="time" id="popupStartTime" value="08:00">
+                </div>
+                <div class="form-row popup-time-fields">
+                    <label>End time</label>
+                    <input type="time" id="popupEndTime" value="09:00">
+                </div>
+                <div class="form-row">
+                    <label>Priority</label>
+                    <select id="popupPriority">
+                        <option value="High">High priority</option>
+                        <option value="Medium">Medium priority</option>
+                        <option value="Low">Low priority</option>
+                    </select>
+                </div>
+                <div class="form-row">
+                    <label>Description</label>
+                    <textarea id="popupDescription" placeholder="Add details or a quick note..."></textarea>
+                </div>
+                <button onclick="saveCalendarPopupItem()" class="panel-btn">Save to Planner</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+
+    <script src="js/ui/feedback.js"></script>
+    <script src="js/schools.js"></script>
     <script src="js/script.js"></script>
+    <script src="js/productivity.js"></script>
+    <script src="js/pdfImport/pdfReader.js"></script>
+    <script src="js/pdfImport/ocrProcessor.js"></script>
+    <script src="js/pdfImport/assessmentExtractor.js"></script>
+    <script src="js/pdfImport/parsers/courseParser.js"></script>
+    <script src="js/pdfImport/parsers/weightParser.js"></script>
+    <script src="js/pdfImport/parsers/assignmentParser.js"></script>
+    <script src="js/pdfImport/parsers/dateParser.js"></script>
+    <script src="js/pdfImport/importer.js"></script>
+    <script src="js/pdfImport/previewModal.js"></script>
+    <script src="js/pdfImport/validator.js"></script>
+    <script src="pdfImportLearningTest/trainingDataset.js"></script>
+    <script src="pdfImportLearningTest/assessmentMemory.js"></script>
+    <script src="pdfImportLearningTest/learningEngine.js"></script>
+    <script src="pdfImportLearningTest/assessmentExtractor.js"></script>
+    <script src="pdfImportLearningTest/trainingData/index.js"></script>
+    <script src="pdfImportLearningTest/parserEvaluator.js"></script>
+    <script src="pdfImportLearningTest/regressionRunner.js"></script>
+    <script src="pdfImportLearningTest/ui/learningPreview.js"></script>
+    <script src="pdfImportLearningTest/learningImporter.js"></script>
+    <script src="firebase-config.js"></script>
+    <script type="module" src="js/firebase/authGate.js"></script>
+    <script>
+        const schoolInput = document.getElementById('schoolInput');
+        if (schoolInput) {
+            schoolInput.innerHTML = '';
+            Object.keys(ALL_SCHOOLS).sort((a, b) => ALL_SCHOOLS[a].name.localeCompare(ALL_SCHOOLS[b].name))
+                .forEach(key => {
+                    const opt = document.createElement('option');
+                    opt.value = key;
+                    opt.textContent = `${ALL_SCHOOLS[key].name} (${ALL_SCHOOLS[key].province})`;
+                    schoolInput.appendChild(opt);
+                });
+        }
+    </script>
+    <script src="js/pwa.js"></script>
 </body>
 
 </html>
