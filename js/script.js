@@ -689,7 +689,9 @@ function exportBackup() {
         notes,
         courseOutlines,
         weeklyReviewHistory,
-        achievements
+        achievements,
+        flashcards,
+        dashboardConfig
     };
     const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -722,6 +724,8 @@ function importBackupFile(event) {
             if (data.weeklyReviewHistory !== undefined) GradeQuestStorage.setJson('weeklyReviewHistory', data.weeklyReviewHistory);
             if (data.achievements !== undefined) GradeQuestStorage.setJson('achievements', data.achievements);
             if (data.notes !== undefined) GradeQuestStorage.set('studyNotes', data.notes);
+            if (data.flashcards !== undefined) GradeQuestStorage.setJson('flashcards', data.flashcards);
+            if (data.dashboardConfig !== undefined) GradeQuestStorage.setJson('dashboardConfig', data.dashboardConfig);
             showToast('Backup restored successfully.', 'success');
             location.reload();
         } catch (error) {

@@ -5,7 +5,7 @@ const CDN_ASSETS = [
     'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js'
 ];
 const APP_SHELL = [
-    './', './index.html', './css/style.css', './js/schools.js', './js/script.js',
+    './', './index.html', './css/style.css', './firebase-config.js', './js/schools.js', './js/userStorage.js', './js/script.js',
     './js/productivity.js', './js/pdfImport/pdfReader.js', './js/pdfImport/ocrProcessor.js',
     './js/pdfImport/assessmentExtractor.js', './js/pdfImport/parsers/courseParser.js',
     './js/pdfImport/parsers/weightParser.js', './js/pdfImport/parsers/assignmentParser.js',
@@ -54,8 +54,8 @@ self.addEventListener('fetch', event => {
         event.respondWith(caches.open(RUNTIME_CACHE).then(cache => cache.match(event.request).then(cachedResponse => {
             const networkResponse = fetch(event.request, { mode: 'no-cors' })
                 .then(response => {
-                    if (response) cache.put(event.request, response.clone());
-                    return response;
+                    if (!response) return response;
+                    return cache.put(event.request, response.clone()).catch(() => undefined).then(() => response);
                 })
                 .catch(() => cachedResponse);
             return cachedResponse || networkResponse;
@@ -68,7 +68,9 @@ self.addEventListener('fetch', event => {
             .then(response => {
                 if (response && response.ok) {
                     const responseClone = response.clone();
-                    caches.open(CACHE_VERSION).then(cache => cache.put(event.request, responseClone));
+                    caches.open(CACHE_VERSION)
+                        .then(cache => cache.put(event.request, responseClone))
+                        .catch(() => undefined);
                 }
                 return response;
             })
