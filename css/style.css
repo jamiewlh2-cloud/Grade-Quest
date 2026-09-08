@@ -2997,6 +2997,37 @@ body.dark-mode .status-tag.at-risk {
     color: #ffc1bb;
 }
 
+body.dark-mode .hub-intro,
+body.dark-mode .countdown-widget,
+body.dark-mode .overview-card,
+body.dark-mode .workspace-context-nav {
+    background: var(--surface-secondary);
+    border-color: var(--border);
+    color: var(--text);
+    box-shadow: var(--shadow-none);
+}
+
+body.dark-mode .overview-card:hover,
+body.dark-mode .context-nav-button.active {
+    background: var(--surface-tertiary);
+}
+
+body.dark-mode .settings-layout .panel-card,
+body.dark-mode .weekly-summary-grid .panel-card,
+body.dark-mode .comparison-grid .panel-card,
+body.dark-mode .course-detail-grid .panel-card {
+    background: var(--surface-secondary);
+    border-color: var(--border);
+}
+
+body.dark-mode .panel-heading,
+body.dark-mode .panel-heading h3,
+body.dark-mode .panel-heading p,
+body.dark-mode .hub-intro h3,
+body.dark-mode .workspace-header h2 {
+    color: var(--text);
+}
+
 @media (prefers-reduced-motion: reduce) {
     .dashboard-panel.active-panel,
     .modal-card {

@@ -197,11 +197,12 @@ function ensureWorkspacePanelOwnership() {
     });
 }
 
-function updateContextNavigation(activeTab) {
+function updateContextNavigation(activeTab, contextView) {
     document.querySelectorAll('.workspace-context-nav').forEach(nav => {
         nav.querySelectorAll('.context-nav-button').forEach(button => {
             const match = String(button.getAttribute('onclick') || '').match(/setActiveTab\('([^']+)'\)/);
-            button.classList.toggle('active', Boolean(match && match[1] === activeTab));
+            const contextMatch = button.dataset.contextView && button.dataset.contextView === contextView;
+            button.classList.toggle('active', Boolean(contextMatch || (!contextView && match && match[1] === activeTab)));
         });
     });
 }
@@ -229,7 +230,7 @@ window.closeModalWithTransition = function (overlay) {
     }, 200);
 };
 
-function setActiveTab(tab) {
+function setActiveTab(tab, contextView = '') {
     const primaryTab = {
         home: 'home',
         courses: 'courses',
@@ -257,7 +258,7 @@ function setActiveTab(tab) {
         btn.classList.toggle('active', label === primaryTab || (primaryTab === 'home' && label === 'home'));
     });
 
-    updateContextNavigation(tab);
+    updateContextNavigation(tab, contextView);
     updateWorkspaceViewState(primaryTab, targetPanelKey);
 
     const primaryPanel = document.getElementById(`${primaryTab}Panel`);

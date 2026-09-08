@@ -3,6 +3,7 @@
     const updatePrompt = document.getElementById('pwaUpdatePrompt');
     const updateButton = document.getElementById('pwaUpdateButton');
     const installButton = document.getElementById('pwaInstallButton');
+    const updateHandledKey = 'gradequestUpdateHandled';
     let waitingWorker = null;
     let hasControlledClient = Boolean(navigator.serviceWorker && navigator.serviceWorker.controller);
 
@@ -25,6 +26,7 @@
 
     function activateUpdate() {
         if (!waitingWorker) return;
+        sessionStorage.setItem(updateHandledKey, '1');
         hideUpdatePrompt();
         waitingWorker.postMessage({ type: 'SKIP_WAITING' });
     }
@@ -32,9 +34,11 @@
     function registerServiceWorker() {
         if (!('serviceWorker' in navigator)) return;
         hideUpdatePrompt();
+        const suppressWaitingPrompt = sessionStorage.getItem(updateHandledKey) === '1';
         navigator.serviceWorker.register('./sw.js', { scope: './' }).then(registration => {
             return registration.update().catch(() => undefined).then(() => {
-                if (registration.waiting) showUpdatePrompt(registration.waiting);
+                if (registration.waiting && !suppressWaitingPrompt) showUpdatePrompt(registration.waiting);
+                sessionStorage.removeItem(updateHandledKey);
             });
         }).catch(error => console.warn('GradeQuest service worker registration failed:', error));
 

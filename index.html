@@ -219,8 +219,6 @@ Date Created: March 13, 2026
             <div class="workspace-context-nav" aria-label="Course workspace navigation">
                 <button class="context-nav-button button-tertiary active" onclick="setActiveTab('courses')">Overview</button>
                 <button class="context-nav-button button-tertiary" onclick="setActiveTab('grades')">Grades</button>
-                <button class="context-nav-button button-tertiary" onclick="setActiveTab('assignments')">Assessments</button>
-                <button class="context-nav-button button-tertiary" onclick="setActiveTab('files')">Files</button>
                 <button class="context-nav-button button-tertiary" onclick="setActiveTab('notes')">Notes</button>
             </div>
             <div class="panel-card">
@@ -248,10 +246,10 @@ Date Created: March 13, 2026
 
         <section id="weeklyPanel" class="dashboard-panel">
             <div class="workspace-context-nav" aria-label="Analytics navigation">
-                <button class="context-nav-button button-tertiary active" onclick="setActiveTab('weekly')">Progress</button>
+                <button class="context-nav-button button-tertiary active" data-context-view="progress" onclick="setActiveTab('weekly', 'progress')">Progress</button>
                 <button class="context-nav-button button-tertiary" onclick="setActiveTab('predictor')">Grade analysis</button>
                 <button class="context-nav-button button-tertiary" onclick="setActiveTab('health')">Course health</button>
-                <button class="context-nav-button button-tertiary" onclick="setActiveTab('study')">Study history</button>
+                <button class="context-nav-button button-tertiary" data-context-view="history" onclick="setActiveTab('weekly', 'history')">Study history</button>
             </div>
             <div class="panel-card">
                 <div class="panel-heading">
