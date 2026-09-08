@@ -25,6 +25,26 @@ function hydrateUserData(uid) {
     if (typeof hydrateProductivityData === 'function') hydrateProductivityData(uid);
 }
 
+function getGradeQuestDataSnapshot() {
+    return Object.fromEntries(GradeQuestStorage.USER_KEYS.map(key => [
+        key,
+        key === 'studyNotes' ? GradeQuestStorage.get(key, '') : GradeQuestStorage.getJson(key, null)
+    ]));
+}
+
+function applyGradeQuestDataSnapshot(snapshot) {
+    if (!snapshot || typeof snapshot !== 'object') return;
+    Object.entries(snapshot).forEach(([key, value]) => {
+        if (!GradeQuestStorage.USER_KEYS.includes(key)) return;
+        if (key === 'studyNotes') GradeQuestStorage.set(key, String(value || ''));
+        else GradeQuestStorage.setJson(key, value);
+    });
+    hydrateUserData(GradeQuestStorage.getActiveUser());
+}
+
+window.getGradeQuestDataSnapshot = getGradeQuestDataSnapshot;
+window.applyGradeQuestDataSnapshot = applyGradeQuestDataSnapshot;
+
 function clearUserDataState() {
     courses = {};
     studyFiles = [];

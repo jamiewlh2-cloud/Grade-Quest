@@ -17,7 +17,7 @@ const APP_SHELL = [
     './pdfImportLearningTest/regressionRunner.js', './pdfImportLearningTest/ui/learningPreview.js',
     './pdfImportLearningTest/learningImporter.js', './js/pwa.js', './js/ui/feedback.js',
     './js/firebase/firebaseConfig.js', './js/firebase/firebaseClient.js', './js/firebase/authService.js',
-    './js/firebase/authGate.js', './js/firebase/firestoreService.js', './js/firebase/userProfileService.js',
+    './js/firebase/authGate.js', './js/firebase/firestoreService.js', './js/firebase/cloudDataService.js', './js/firebase/userProfileService.js',
     './manifest.json',
     './icons/icon-192.svg', './icons/icon-512.svg'
 ];

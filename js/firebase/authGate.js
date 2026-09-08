@@ -9,10 +9,13 @@ import {
     sendPasswordReset
 } from './authService.js';
 import { getFirebaseAuth } from './firebaseClient.js';
+import { getUserDataSnapshot, saveUserDataSnapshot } from './cloudDataService.js';
 import { getUserProfile, profileIsComplete, updateUserProfile } from './userProfileService.js';
 
 const state = { mode: 'login', busy: false, initialized: false, signupInProgress: false, authGeneration: 0, user: null, profile: null };
 const elements = {};
+let cloudSaveTimer = null;
+let cloudSaveGeneration = 0;
 
 function cacheElements() {
     [
@@ -87,8 +90,19 @@ function clearUserSession() {
     state.profile = null;
 }
 
-function showApp(user, profile) {
+async function showApp(user, profile) {
     hydrateGradeQuestData(user.uid);
+    const cloudSnapshot = await getUserDataSnapshot(user.uid).catch(error => {
+        console.warn('GradeQuest cloud data load failed:', error);
+        return null;
+    });
+    if (cloudSnapshot && typeof window.applyGradeQuestDataSnapshot === 'function') {
+        window.applyGradeQuestDataSnapshot(cloudSnapshot);
+    } else if (typeof window.getGradeQuestDataSnapshot === 'function') {
+        await saveUserDataSnapshot(user.uid, window.getGradeQuestDataSnapshot()).catch(error => {
+            console.warn('GradeQuest cloud data migration failed:', error);
+        });
+    }
     state.user = user;
     state.profile = profile;
     window.GradeQuestProfile = profile;
@@ -144,7 +158,7 @@ async function resolveUser(user) {
             showMessage('Complete your profile to continue.', 'info');
             return;
         }
-        showApp(user, profile);
+        await showApp(user, profile);
     } catch (error) {
         if (isCurrentRequest()) showMessage(error.message || 'Unable to load your profile.', 'error');
     } finally {
@@ -176,7 +190,7 @@ async function handleSubmit(event) {
             showMessage(result.error, 'error');
             return;
         }
-        showApp(state.user, result.value);
+        await showApp(state.user, result.value);
         showToast('Profile completed successfully.', 'success');
         return;
     }
@@ -199,7 +213,7 @@ async function handleSubmit(event) {
             if (!createdProfile || !profileIsComplete(createdProfile)) {
                 throw new Error('Account created, but the user profile could not be verified.');
             }
-            showApp(result.value, createdProfile);
+            await showApp(result.value, createdProfile);
             showToast('Account created successfully.', 'success');
         } catch (error) {
             await logout();
@@ -269,6 +283,18 @@ document.addEventListener('DOMContentLoaded', () => {
         clearUserSession();
         showAuth();
         await logout();
+    });
+    window.addEventListener('gradequest:data-changed', event => {
+        const uid = event.detail?.uid;
+        if (!uid || uid !== state.user?.uid || typeof window.getGradeQuestDataSnapshot !== 'function') return;
+        window.clearTimeout(cloudSaveTimer);
+        const saveGeneration = ++cloudSaveGeneration;
+        cloudSaveTimer = window.setTimeout(async () => {
+            if (saveGeneration !== cloudSaveGeneration || state.user?.uid !== uid) return;
+            await saveUserDataSnapshot(uid, window.getGradeQuestDataSnapshot()).catch(error => {
+                console.warn('GradeQuest cloud data save failed:', error);
+            });
+        }, 250);
     });
     window.saveUserProfileFromSettings = async () => {
         const profile = {

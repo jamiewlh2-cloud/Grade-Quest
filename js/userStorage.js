@@ -73,6 +73,9 @@
 
     function set(baseKey, value, uid = activeUid) {
         localStorage.setItem(scopedKey(baseKey, uid), value);
+        window.dispatchEvent(new CustomEvent('gradequest:data-changed', {
+            detail: { key: baseKey, uid }
+        }));
     }
 
     function setJson(baseKey, value, uid = activeUid) {
