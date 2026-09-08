@@ -453,7 +453,10 @@ Date Created: March 13, 2026
                     </div>
                 </div>
                 <textarea id="notesInput" class="notes-textarea" placeholder="Jot down ideas, study plans, or anything else you want to remember..."></textarea>
-                <button onclick="saveNotes()" class="button-primary">Save Notes</button>
+                <div class="notes-actions">
+                    <button onclick="saveNotes()" class="button-primary">Save Notes</button>
+                    <button onclick="deleteNotes()" class="button-destructive">Clear Notes</button>
+                </div>
             </div>
         </section>
 

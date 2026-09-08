@@ -978,7 +978,14 @@ function addGoal(goal) {
     render();
 }
 
-function deleteGoal(id) {
+async function deleteGoal(id) {
+    const confirmed = await showConfirmDialog({
+        title: 'Delete goal?',
+        message: 'This permanently removes the goal from all synced devices.',
+        confirmLabel: 'Delete goal',
+        danger: true
+    });
+    if (!confirmed) return;
     semesterGoals = semesterGoals.filter(g => g.id !== id);
     saveSemesterGoals();
     render();
@@ -2080,19 +2087,51 @@ function addGrade(courseName) {
 }
 
 function deleteGrade(courseName, idx) {
-    courses[courseName].grades.splice(idx, 1);
+    showConfirmDialog({
+        title: 'Delete assessment?',
+        message: 'This permanently removes the assessment grade from this course.',
+        confirmLabel: 'Delete assessment',
+        danger: true
+    }).then(confirmed => {
+        if (!confirmed) return;
+        courses[courseName].grades.splice(idx, 1);
+        save();
+    });
+}
+
+async function editGrade(courseName, idx) {
+    const grade = courses[courseName]?.grades?.[idx];
+    if (!grade) return;
+    const value = await showTextDialog({
+        title: 'Edit assessment',
+        message: 'Enter score and weight separated by a comma, for example: 85,20',
+        value: `${grade.score},${grade.weight}`,
+        confirmLabel: 'Save assessment'
+    });
+    const match = String(value || '').match(/^\s*(\d+(?:\.\d+)?)\s*,\s*(\d+(?:\.\d+)?)\s*$/);
+    if (!match) {
+        showToast('Enter a valid score and weight.', 'error');
+        return;
+    }
+    grade.score = Number(match[1]);
+    grade.weight = Number(match[2]);
     save();
 }
 
 async function deleteClass(name) {
     const confirmed = await showConfirmDialog({
         title: `Delete ${name}?`,
-        message: 'This removes the course and its grades from this device.',
+        message: 'This removes the course, grades, tasks, files, and outline from all synced devices.',
         confirmLabel: 'Delete course',
         danger: true
     });
     if (confirmed) {
         delete courses[name];
+        const normalizedName = name.toUpperCase();
+        plannerTasks = plannerTasks.filter(task => String(task.course || '').toUpperCase() !== normalizedName);
+        studyFiles = studyFiles.filter(file => String(file.course || '').toUpperCase() !== normalizedName);
+        delete courseOutlines[normalizedName];
+        saveStudyData();
         save();
     }
 }
@@ -2199,7 +2238,29 @@ async function addStudyFile() {
     }
 }
 
-function deleteStudyFile(id) {
+async function editStudyFile(id) {
+    const file = studyFiles.find(item => item.id === id);
+    if (!file) return;
+    const title = await showTextDialog({
+        title: 'Edit resource',
+        message: 'Update the resource title.',
+        value: file.title,
+        confirmLabel: 'Save resource'
+    });
+    if (!title || !title.trim()) return;
+    file.title = title.trim();
+    saveStudyData();
+    render();
+}
+
+async function deleteStudyFile(id) {
+    const confirmed = await showConfirmDialog({
+        title: 'Delete resource?',
+        message: 'This permanently removes the file record from all synced devices.',
+        confirmLabel: 'Delete resource',
+        danger: true
+    });
+    if (!confirmed) return;
     studyFiles = studyFiles.filter(file => file.id !== id);
     saveStudyData();
     render();
@@ -2347,13 +2408,34 @@ function togglePlannerTask(id) {
 }
 
 function deletePlannerTask(id) {
-    plannerTasks = plannerTasks.filter(task => task.id !== id);
-    saveStudyData();
-    render();
+    showConfirmDialog({
+        title: 'Delete planner task?',
+        message: 'This permanently removes the task from all synced devices.',
+        confirmLabel: 'Delete task',
+        danger: true
+    }).then(confirmed => {
+        if (!confirmed) return;
+        plannerTasks = plannerTasks.filter(task => task.id !== id);
+        saveStudyData();
+        render();
+    });
 }
 
 function saveNotes() {
     notes = document.getElementById('notesInput').value;
+    saveStudyData();
+    render();
+}
+
+async function deleteNotes() {
+    const confirmed = await showConfirmDialog({
+        title: 'Clear notes?',
+        message: 'This permanently removes your notes from all synced devices.',
+        confirmLabel: 'Clear notes',
+        danger: true
+    });
+    if (!confirmed) return;
+    notes = '';
     saveStudyData();
     render();
 }
@@ -2380,7 +2462,10 @@ function renderFiles() {
                 ` : ''}
                 ${file.outlineItems && file.outlineItems.length ? `<p>Outline weights: ${file.outlineItems.map(item => `${item.name} (${item.weight}%)`).join(', ')}</p>` : ''}
             </div>
-            <button class="resource-action" onclick="deleteStudyFile(${file.id})">×</button>
+            <div>
+                <button class="resource-action" onclick="editStudyFile(${file.id})">Edit</button>
+                <button class="resource-action" onclick="deleteStudyFile(${file.id})">×</button>
+            </div>
         </div>
     `).join('');
 }
@@ -2398,7 +2483,7 @@ function renderOutlinePreview() {
     preview.innerHTML = entries.map(([course, items]) => `
         <div class="panel-card list-item">
             <strong>${course}</strong>
-            ${items.map(item => `<span class="outline-chip">${item.name} — ${item.weight}%${item.dueDate ? ` • due ${item.dueDate}` : ''}</span>`).join('')}
+            ${items.map((item, index) => `<span class="outline-chip">${item.name} — ${item.weight}%${item.dueDate ? ` • due ${item.dueDate}` : ''} <button class="mini-del" onclick="editAssessment('${course}', ${index})">Edit</button><button class="mini-del" onclick="deleteAssessment('${course}', ${index})">×</button></span>`).join('')}
         </div>
     `).join('');
 }
@@ -2620,7 +2705,10 @@ function render() {
                         ${course.grades.map((g, idx) => `
                             <div class="grade-row">
                                 <span><strong>${g.score}%</strong> <small>(${g.weight}% weight)</small></span>
-                                <button class="mini-del" onclick="deleteGrade('${name}', ${idx})">×</button>
+                                    <span>
+                                        <button class="mini-del" onclick="editGrade('${name}', ${idx})">Edit</button>
+                                        <button class="mini-del" onclick="deleteGrade('${name}', ${idx})">×</button>
+                                    </span>
                             </div>
                         `).join('') || '<p style="font-size:0.8rem; color:#94a3b8">No grades added yet.</p>'}
                     </div>
@@ -4046,4 +4134,40 @@ function saveImportedCourse(data) {
     render();
 
     showToast('Course imported successfully.', 'success');
+}
+
+async function editAssessment(course, index) {
+    const assessment = courseOutlines[course]?.[index];
+    if (!assessment) return;
+    const value = await showTextDialog({
+        title: 'Edit assessment',
+        message: 'Enter the assessment name and weight separated by a comma, for example: Midterm,30',
+        value: `${assessment.name},${assessment.weight}`,
+        confirmLabel: 'Save assessment'
+    });
+    const match = String(value || '').match(/^\s*(.+?)\s*,\s*(\d+(?:\.\d+)?)\s*$/);
+    if (!match) {
+        showToast('Enter a valid assessment name and weight.', 'error');
+        return;
+    }
+    assessment.name = match[1].trim();
+    assessment.weight = Number(match[2]);
+    saveStudyData();
+    render();
+}
+
+async function deleteAssessment(course, index) {
+    const assessment = courseOutlines[course]?.[index];
+    if (!assessment) return;
+    const confirmed = await showConfirmDialog({
+        title: 'Delete assessment?',
+        message: `This removes ${assessment.name} from the ${course} outline.`,
+        confirmLabel: 'Delete assessment',
+        danger: true
+    });
+    if (!confirmed) return;
+    courseOutlines[course].splice(index, 1);
+    if (!courseOutlines[course].length) delete courseOutlines[course];
+    saveStudyData();
+    render();
 }

@@ -961,8 +961,35 @@ function addFlashcard(front, back, course) {
     render();
 }
 
-function deleteFlashcard(id) {
+async function deleteFlashcard(id) {
+    const confirmed = await showConfirmDialog({
+        title: 'Delete flashcard?',
+        message: 'This permanently removes the flashcard from all synced devices.',
+        confirmLabel: 'Delete flashcard',
+        danger: true
+    });
+    if (!confirmed) return;
     flashcards = flashcards.filter(c => c.id !== id);
+    saveFlashcards();
+    render();
+}
+
+async function editFlashcard(id) {
+    const card = flashcards.find(item => item.id === id);
+    if (!card) return;
+    const value = await showTextDialog({
+        title: 'Edit flashcard',
+        message: 'Enter the front and back separated by a pipe, for example: Term | Definition',
+        value: `${card.front} | ${card.back}`,
+        confirmLabel: 'Save flashcard'
+    });
+    const parts = String(value || '').split('|');
+    if (parts.length < 2 || !parts[0].trim() || !parts.slice(1).join('|').trim()) {
+        showToast('Enter both a front and back.', 'error');
+        return;
+    }
+    card.front = parts[0].trim();
+    card.back = parts.slice(1).join('|').trim();
     saveFlashcards();
     render();
 }
@@ -1046,7 +1073,10 @@ function renderFlashcardsDashboard() {
                         <strong>${escapeHtml(c.front)}</strong>
                         <p>${escapeHtml(c.back)} • ${escapeHtml(c.course)} • Next: ${c.nextReview || 'today'}</p>
                     </div>
-                    <button class="button-destructive" onclick="deleteFlashcard(${c.id})">×</button>
+                    <div>
+                        <button class="button-secondary" onclick="editFlashcard(${c.id})">Edit</button>
+                        <button class="button-destructive" onclick="deleteFlashcard(${c.id})">×</button>
+                    </div>
                 </div>
             `).join('') : ''}
         </div>

@@ -84,11 +84,17 @@
 
     function remove(baseKey, uid = activeUid) {
         localStorage.removeItem(scopedKey(baseKey, uid));
+        window.dispatchEvent(new CustomEvent('gradequest:data-changed', {
+            detail: { key: baseKey, uid }
+        }));
     }
 
     function clearUser(uid = activeUid) {
         const validUid = validateUid(uid);
         USER_KEYS.forEach(baseKey => localStorage.removeItem(scopedKey(baseKey, validUid)));
+        window.dispatchEvent(new CustomEvent('gradequest:data-changed', {
+            detail: { key: '*', uid: validUid }
+        }));
     }
 
     window.GradeQuestStorage = {
