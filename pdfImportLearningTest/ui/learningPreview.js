@@ -34,15 +34,15 @@ window.PDFImportLearningTest = window.PDFImportLearningTest || {};
                         <h3 style="margin:4px 0 0;">Review extracted assessments</h3>
                     </div>
                     <div style="display:flex; gap:8px; flex-wrap:wrap;">
-                        <button type="button" data-learning-action="run-regression" class="panel-btn">Run Regression Tests</button>
-                        <button type="button" data-learning-action="export-dataset" class="secondary-btn">Export Training Dataset</button>
-                        <button type="button" data-learning-action="close" class="secondary-btn">Cancel</button>
+                        <button type="button" data-learning-action="run-regression" class="button-primary">Run Regression Tests</button>
+                        <button type="button" data-learning-action="export-dataset" class="button-secondary">Export Training Dataset</button>
+                        <button type="button" data-learning-action="close" class="button-secondary">Cancel</button>
                     </div>
                 </div>
                 <div data-learning-summary style="margin-bottom:12px; color:#334155;"></div>
                 <div data-learning-list style="display:flex; flex-direction:column; gap:12px;"></div>
                 <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:16px;">
-                    <button type="button" data-learning-action="save" class="panel-btn">Save Learning Sample</button>
+                        <button type="button" data-learning-action="save" class="button-primary">Save Learning Sample</button>
                 </div>
             </div>
         `;
@@ -65,9 +65,9 @@ window.PDFImportLearningTest = window.PDFImportLearningTest || {};
                         <div style="color:#94a3b8; font-size:0.8rem; margin-top:4px;">Confidence: ${(Number(item.confidence || 0) * 100).toFixed(0)}%</div>
                     </div>
                     <div style="display:flex; gap:8px; flex-wrap:wrap;">
-                        <button type="button" data-review-action="correct" data-index="${index}" class="panel-btn">[Correct]</button>
-                        <button type="button" data-review-action="edit" data-index="${index}" class="secondary-btn">[Edit]</button>
-                        <button type="button" data-review-action="incorrect" data-index="${index}" class="secondary-btn">[Incorrect]</button>
+                        <button type="button" data-review-action="correct" data-index="${index}" class="button-primary">[Correct]</button>
+                        <button type="button" data-review-action="edit" data-index="${index}" class="button-secondary">[Edit]</button>
+                        <button type="button" data-review-action="incorrect" data-index="${index}" class="button-secondary">[Incorrect]</button>
                     </div>
                 </div>
                 <div data-edit-panel="${index}" style="display:${isEditing ? 'grid' : 'none'}; margin-top:12px; gap:10px; grid-template-columns:1fr 120px 160px;">
@@ -75,8 +75,8 @@ window.PDFImportLearningTest = window.PDFImportLearningTest || {};
                     <input type="number" data-edit-weight="${index}" value="${Number.isFinite(weight) ? weight : ''}" placeholder="Weight" style="width:100%;">
                     <input type="text" data-edit-due="${index}" value="${dueDate.replace(/"/g, '&quot;')}" placeholder="Due date" style="width:100%;">
                     <div style="display:flex; gap:8px; grid-column:1 / -1; justify-content:flex-end;">
-                        <button type="button" data-review-action="save-edit" data-index="${index}" class="panel-btn">Save Edit</button>
-                        <button type="button" data-review-action="cancel-edit" data-index="${index}" class="secondary-btn">Cancel Edit</button>
+                        <button type="button" data-review-action="save-edit" data-index="${index}" class="button-primary">Save Edit</button>
+                        <button type="button" data-review-action="cancel-edit" data-index="${index}" class="button-secondary">Cancel Edit</button>
                     </div>
                 </div>
                 <div data-status="${index}" style="margin-top:10px; font-size:0.85rem; color:#475569;">Pending review</div>

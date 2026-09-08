@@ -175,6 +175,28 @@ function findLinkedAssessment(courseCode, title) {
     }) || null;
 }
 
+const workspacePanelOwners = {
+    grades: 'courses',
+    notes: 'courses',
+    assignments: 'planner',
+    predictor: 'weekly',
+    health: 'weekly',
+    goals: 'weekly',
+    focus: 'study',
+    flashcards: 'study',
+    profile: 'settings'
+};
+
+function ensureWorkspacePanelOwnership() {
+    Object.entries(workspacePanelOwners).forEach(([panelKey, ownerKey]) => {
+        const panel = document.getElementById(`${panelKey}Panel`);
+        const owner = document.getElementById(`${ownerKey}Panel`);
+        if (panel && owner && panel.parentElement !== owner) {
+            owner.appendChild(panel);
+        }
+    });
+}
+
 function setActiveTab(tab) {
     const primaryTab = {
         home: 'home',
@@ -194,9 +216,14 @@ function setActiveTab(tab) {
         profile: 'settings',
         settings: 'settings'
     }[tab] || tab;
+    const targetPanelKey = workspacePanelOwners[tab] ? tab : primaryTab;
+    const primaryPanel = document.getElementById(`${primaryTab}Panel`);
+    const targetPanel = document.getElementById(`${targetPanelKey}Panel`);
+
+    ensureWorkspacePanelOwnership();
     localStorage.setItem('activeDashboardTab', tab);
 
-    document.querySelectorAll('.tab-btn').forEach(btn => {
+    document.querySelectorAll('.primary-nav-button').forEach(btn => {
         const label = (btn.dataset.tab || btn.textContent.trim().toLowerCase()).toLowerCase();
         btn.classList.toggle('active', label === primaryTab || (primaryTab === 'home' && label === 'home'));
     });
@@ -205,17 +232,16 @@ function setActiveTab(tab) {
         panel.classList.remove('active-panel');
     });
 
-    const targetPanel = document.getElementById(`${tab}Panel`);
-    if (targetPanel) {
-        targetPanel.classList.add('active-panel');
-        window.requestAnimationFrame(() => {
-            targetPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        });
+    if (primaryPanel) {
+        primaryPanel.classList.add('active-panel');
     }
-
-    const mobileTabSelect = document.getElementById('mobileTabSelect');
-    if (mobileTabSelect && mobileTabSelect.value !== primaryTab) {
-        mobileTabSelect.value = primaryTab;
+    if (targetPanel && targetPanel !== primaryPanel) {
+        targetPanel.classList.add('active-panel');
+    }
+    if (primaryPanel) {
+        window.requestAnimationFrame(() => {
+            primaryPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
     }
 }
 
@@ -271,7 +297,7 @@ function renderHomeHub() {
     const weeklyPreview = currentWeekStats.mostStudiedCourse ? `${currentWeekStats.mostStudiedCourse} • ${currentWeekStats.studyHours} hrs` : 'No study yet';
 
     hub.innerHTML = `
-        <button class="widget-card widget-planner widget-span-4" onclick="setActiveTab('planner')">
+        <button class="panel-card overview-card widget-planner widget-span-4" onclick="setActiveTab('planner')">
             <div class="widget-top">
                 <span class="widget-icon">🗓️</span>
                 <span class="widget-badge">Planner</span>
@@ -286,7 +312,7 @@ function renderHomeHub() {
             </div>
         </button>
 
-        <button class="widget-card widget-grader widget-span-2" onclick="setActiveTab('grades')">
+        <button class="panel-card overview-card widget-grader widget-span-2" onclick="setActiveTab('grades')">
             <div class="widget-top">
                 <span class="widget-icon">📈</span>
                 <span class="widget-badge">Grader</span>
@@ -306,11 +332,7 @@ function renderHomeHub() {
             </div>
         </button>
 
-        ${renderAdvisorWidgetHtml()}
-
-        ${renderAssignmentsWidgetHtml()}
-
-        <button class="widget-card widget-files widget-span-1" onclick="setActiveTab('files')">
+        <button class="panel-card overview-card overview-hidden widget-files widget-span-1" onclick="setActiveTab('files')">
             <div class="widget-top">
                 <span class="widget-icon">🗂️</span>
                 <span class="widget-badge">Resources</span>
@@ -327,7 +349,7 @@ function renderHomeHub() {
             </div>
         </button>
 
-        <button class="widget-card widget-notes widget-span-1" onclick="setActiveTab('notes')">
+        <button class="panel-card overview-card overview-hidden widget-notes widget-span-1" onclick="setActiveTab('notes')">
             <div class="widget-top">
                 <span class="widget-icon">✍️</span>
                 <span class="widget-badge">Notes</span>
@@ -341,7 +363,7 @@ function renderHomeHub() {
             </div>
         </button>
 
-        <button class="widget-card widget-study widget-span-1" onclick="setActiveTab('study')">
+        <button class="panel-card overview-card overview-hidden widget-study widget-span-1" onclick="setActiveTab('study')">
             <div class="widget-top">
                 <span class="widget-icon">⏱️</span>
                 <span class="widget-badge">Study</span>
@@ -356,7 +378,7 @@ function renderHomeHub() {
             </div>
         </button>
 
-        <button class="widget-card widget-goals widget-span-2" onclick="setActiveTab('goals')">
+        <button class="panel-card overview-card overview-hidden widget-goals widget-span-2" onclick="setActiveTab('goals')">
             <div class="widget-top">
                 <span class="widget-icon">🎯</span>
                 <span class="widget-badge">Goals</span>
@@ -371,7 +393,7 @@ function renderHomeHub() {
             </div>
         </button>
 
-        <button class="widget-card widget-notification widget-span-1" onclick="setActiveTab('settings')">
+        <button class="panel-card overview-card overview-hidden widget-notification widget-span-1" onclick="setActiveTab('settings')">
             <div class="widget-top">
                 <span class="widget-icon">🔔</span>
                 <span class="widget-badge">Notifications</span>
@@ -385,7 +407,7 @@ function renderHomeHub() {
             </div>
         </button>
 
-        <button class="widget-card widget-academic widget-span-2" onclick="setActiveTab('weekly')">
+        <button class="panel-card overview-card overview-hidden widget-academic widget-span-2" onclick="setActiveTab('weekly')">
             <div class="widget-top">
                 <span class="widget-icon">📅</span>
                 <span class="widget-badge">Weekly Review</span>
@@ -402,9 +424,7 @@ function renderHomeHub() {
 
         ${renderTimelineWidgetHtml()}
 
-        ${renderFlashcardsWidgetHtml()}
-
-        <button class="widget-card widget-snapshot widget-span-2" onclick="setActiveTab('study')">
+        <button class="panel-card overview-card widget-snapshot widget-span-2" onclick="setActiveTab('study')">
             <div class="widget-top">
                 <span class="widget-icon">🧭</span>
                 <span class="widget-badge">Snapshot</span>
@@ -419,7 +439,7 @@ function renderHomeHub() {
             </div>
         </button>
 
-        <button class="widget-card widget-academic widget-span-2" onclick="setActiveTab('health')">
+        <button class="panel-card overview-card overview-hidden widget-academic widget-span-2" onclick="setActiveTab('health')">
             <div class="widget-top">
                 <span class="widget-icon">🩺</span>
                 <span class="widget-badge">Academic Health</span>
@@ -434,7 +454,7 @@ function renderHomeHub() {
             </div>
         </button>
 
-        <button class="widget-card widget-focus widget-span-2" onclick="setActiveTab('focus')">
+        <button class="panel-card overview-card overview-hidden widget-focus widget-span-2" onclick="setActiveTab('focus')">
             <div class="widget-top">
                 <span class="widget-icon">🎯</span>
                 <span class="widget-badge">Focus Today</span>
@@ -779,12 +799,12 @@ function renderSettingsDashboard() {
     panel.innerHTML = `
         <div class="settings-layout">
             <div class="settings-column settings-left">
-                <div class="settings-card">
+                <div class="panel-card">
                     <h4>Profile</h4>
-                        <div class="settings-card">
+                        <div class="panel-card">
                             <h4>Profile</h4>
                             <p class="notes-line">Manage your academic identity and preferences on the Profile page.</p>
-                            <button class="panel-btn" onclick="setActiveTab('profile')">Open Profile</button>
+                            <button class="button-primary" onclick="setActiveTab('profile')">Open Profile</button>
                         </div>
                     <h4>Appearance</h4>
                     <div class="panel-form">
@@ -792,20 +812,20 @@ function renderSettingsDashboard() {
                             <label><input type="radio" name="themeOption" value="light" ${currentTheme==='light'?'checked':''}> Light Mode</label>
                             <label><input type="radio" name="themeOption" value="dark" ${currentTheme==='dark'?'checked':''}> Dark Mode</label>
                         </div>
-                        <button class="panel-btn" onclick="applySelectedTheme()">Apply Theme</button>
+                        <button class="button-primary" onclick="applySelectedTheme()">Apply Theme</button>
                     </div>
                 </div>
 
-                <div id="dashboardCustomizationContainer" class="settings-card"></div>
+                <div id="dashboardCustomizationContainer" class="panel-card"></div>
             </div>
 
             <div class="settings-column settings-right">
-                <div class="settings-card">
+                <div class="panel-card">
                     <h4>Notifications</h4>
                     <div class="notification-list">${notifications.map(note => `<div class="achievement">${note.text}</div>`).join('')}</div>
                 </div>
 
-                <div class="settings-card">
+                <div class="panel-card">
                     <h4>Application Statistics</h4>
                     <div class="stats-grid">
                         <div class="stat"><label>Courses</label><div class="val">${stats.courses}</div></div>
@@ -817,7 +837,7 @@ function renderSettingsDashboard() {
                     </div>
                 </div>
 
-                <div class="settings-card">
+                <div class="panel-card">
                     <h4>GradeQuest Health</h4>
                     <div class="notes-line">${backupStatus.message}</div>
                     <div class="settings-health-grid">
@@ -830,17 +850,17 @@ function renderSettingsDashboard() {
                     </div>
                 </div>
 
-                <div class="settings-card">
+                <div class="panel-card">
                     <h4>Achievements</h4>
                     <div class="achievement-list">${achievementsDisplay}</div>
                 </div>
 
-                <div class="settings-card">
+                <div class="panel-card">
                     <h4>Data Management</h4>
                     <div class="settings-actions">
-                        <button class="panel-btn" onclick="exportBackup()">Export Backup</button>
-                        <button class="secondary-btn" onclick="document.getElementById('backupImportInput').click()">Import Backup</button>
-                        <button class="secondary-btn" onclick="resetAllData()">Reset All Data</button>
+                        <button class="button-primary" onclick="exportBackup()">Export Backup</button>
+                        <button class="button-secondary" onclick="document.getElementById('backupImportInput').click()">Import Backup</button>
+                        <button class="button-destructive" onclick="resetAllData()">Reset All Data</button>
                     </div>
                     <p class="notes-line">${backupStatus.message}</p>
                     <input id="backupImportInput" type="file" accept=".json" class="hidden" onchange="importBackupFile(event)">
@@ -879,7 +899,7 @@ function renderProfileDashboard() {
                     <option value="light" ${(profile.preferences?.theme || 'light') === 'light' ? 'selected' : ''}>Light mode</option>
                     <option value="dark" ${profile.preferences?.theme === 'dark' ? 'selected' : ''}>Dark mode</option>
                 </select>
-                <button class="panel-btn" onclick="saveUserProfileFromSettings()">Save Profile</button>
+                <button class="button-primary" onclick="saveUserProfileFromSettings()">Save Profile</button>
             </div>
         </div>
     `;
@@ -1268,8 +1288,8 @@ function renderGoalsDashboard() {
                     <div style="margin-top:6px;">${milestones.join(' ')}</div>
                 </div>
                 <div style="display:flex; gap:8px; margin-top:8px;">
-                    <button class="panel-btn" onclick="updateGoal(${g.id}, { achieved: ${p.percent >= 100} })">Mark</button>
-                    <button class="secondary-btn" onclick="deleteGoal(${g.id})">Delete</button>
+                    <button class="button-primary" onclick="updateGoal(${g.id}, { achieved: ${p.percent >= 100} })">Mark</button>
+                    <button class="button-destructive" onclick="deleteGoal(${g.id})">Delete</button>
                 </div>
             </div>
         `;
@@ -1318,7 +1338,7 @@ function renderGoalsDashboard() {
                         <input id="newGoalTitle" placeholder="Title (optional)" />
                         <input id="newGoalTarget" placeholder="Target (number)" />
                         <input id="newGoalCourse" placeholder="Course code (only for Course Goal)" />
-                        <button class="panel-btn" onclick="(function(){
+                        <button class="button-primary" onclick="(function(){
                             const type=document.getElementById('newGoalType').value;
                             const title=document.getElementById('newGoalTitle').value.trim();
                             const target=parseFloat(document.getElementById('newGoalTarget').value);
@@ -1331,7 +1351,7 @@ function renderGoalsDashboard() {
                     </div>
 
                     <h4 style="margin-top:12px;">Study Summary</h4>
-                    <div class="card">
+                    <div class="panel-card">
                         <div>Total hours: <strong>${totalHours} hrs</strong></div>
                         <div>Hours this week: <strong>${Math.round(getMinutesThisWeek()/60)} hrs</strong></div>
                         <div>Current streak: <strong>${streak} days</strong></div>
@@ -1339,10 +1359,10 @@ function renderGoalsDashboard() {
                     </div>
 
                     <h4 style="margin-top:12px;">Predictions</h4>
-                    <div class="card">${predictions.map(p=>`<div style="padding:6px 0;">${p}</div>`).join('') || '<div class="notes-line">No predictions available</div>'}</div>
+                    <div class="panel-card">${predictions.map(p=>`<div style="padding:6px 0;">${p}</div>`).join('') || '<div class="notes-line">No predictions available</div>'}</div>
 
                     <h4 style="margin-top:12px;">Insights</h4>
-                    <div class="card">${insights.map(i=>`<div style="padding:6px 0;">${i}</div>`).join('') || '<div class="notes-line">No insights</div>'}</div>
+                    <div class="panel-card">${insights.map(i=>`<div style="padding:6px 0;">${i}</div>`).join('') || '<div class="notes-line">No insights</div>'}</div>
                 </div>
             </div>
 
@@ -1424,8 +1444,8 @@ function renderWeeklyReviewDashboard() {
                     <h3>Week of ${weekStart.toDateString()}</h3>
                 </div>
                 <div class="weekly-actions">
-                    <button class="panel-btn" onclick="copyWeeklySummary()">Copy Weekly Summary</button>
-                    <button class="secondary-btn" onclick="copySemesterReport()">Generate Semester Report</button>
+                    <button class="button-primary" onclick="copyWeeklySummary()">Copy Weekly Summary</button>
+                    <button class="button-secondary" onclick="copySemesterReport()">Generate Semester Report</button>
                 </div>
             </div>
 
@@ -1465,9 +1485,9 @@ function renderWeeklyReviewDashboard() {
             <div class="weekly-section">
                 <h4>Week Comparison</h4>
                 <div class="comparison-grid">
-                    <div class="comparison-card">${studyDelta} study time</div>
-                    <div class="comparison-card">${completedDelta} completed assignments</div>
-                    <div class="comparison-card">${overdueDelta} overdue assignments</div>
+                    <div class="panel-card summary-block">${studyDelta} study time</div>
+                    <div class="panel-card summary-block">${completedDelta} completed assignments</div>
+                    <div class="panel-card summary-block">${overdueDelta} overdue assignments</div>
                 </div>
             </div>
 
@@ -2330,7 +2350,7 @@ function renderOutlinePreview() {
     }
 
     preview.innerHTML = entries.map(([course, items]) => `
-        <div class="outline-card">
+        <div class="panel-card list-item">
             <strong>${course}</strong>
             ${items.map(item => `<span class="outline-chip">${item.name} — ${item.weight}%${item.dueDate ? ` • due ${item.dueDate}` : ''}</span>`).join('')}
         </div>
@@ -2352,7 +2372,7 @@ function renderPlanner() {
     }
 
     timeline.innerHTML = upcoming.length ? upcoming.map(task => `
-        <div class="timeline-card">
+        <div class="panel-card list-item">
             <strong>${task.title}</strong>
             <p>${task.course} • ${task.deadline} • ${task.priority}</p>
         </div>
@@ -2365,8 +2385,8 @@ function renderPlanner() {
                 <p>${task.course} • ${task.deadline || 'No deadline'} • ${task.priority}${task.linkedAssessment ? ` • ${task.linkedAssessment.name} (${task.linkedAssessment.weight}%)` : ''}</p>
             </div>
             <div style="display:flex; gap:6px;">
-                <button class="task-action" onclick="togglePlannerTask(${task.id})">✓</button>
-                <button class="task-action" onclick="deletePlannerTask(${task.id})">×</button>
+                <button class="button-tertiary" onclick="togglePlannerTask(${task.id})">✓</button>
+                <button class="button-destructive" onclick="deletePlannerTask(${task.id})">×</button>
             </div>
         </div>
     `).join('');
@@ -2514,7 +2534,7 @@ function render() {
         staggerIndex++;
 
         container.innerHTML += `
-            <div class="card ${isFinal ? 'finalized' : ''}" style="animation-delay: ${delay}s">
+            <div class="panel-card ${isFinal ? 'finalized' : ''}" style="animation-delay: ${delay}s">
                 <div class="card-header">
                     <h2>
                         ${name}
@@ -2591,7 +2611,7 @@ function render() {
                     <div class="final-display">
                         <p style="margin:0; color:#64748b;">Completed Grade</p>
                         <strong>${isFinal}</strong>
-                        <button onclick="unfinalizeCourse('${name}')" class="secondary-btn" style="border-radius:6px; margin-top:10px;">Edit / Re-open</button>
+                        <button onclick="unfinalizeCourse('${name}')" class="button-secondary" style="border-radius:6px; margin-top:10px;">Edit / Re-open</button>
                     </div>
                 `}
             </div>
@@ -2666,14 +2686,14 @@ function renderFocusDashboard() {
                             <p>${item.task.course || 'General'} • ${item.task.deadline || 'No date'} • ${item.task.priority}</p>
                             <p>${item.reasons.join(' • ')}</p>
                         </div>
-                        <button class="task-action" onclick="setActiveTab('planner')">Open</button>
+                        <button class="button-tertiary" onclick="setActiveTab('planner')">Open</button>
                     </div>
                 `).join('') : '<p class="empty-state">No focus tasks available. Add a planner item to create your first priority list.</p>'}
             </div>
             <div style="margin-top:16px; display:flex; gap:12px; flex-wrap:wrap;">
-                <button class="panel-btn" onclick="setActiveTab('planner')">Open Planner</button>
-                <button class="panel-btn" onclick="setActiveTab('courses')">Open Course</button>
-                <button class="panel-btn" onclick="setActiveTab('study')">Start Study Session</button>
+                <button class="button-primary" onclick="setActiveTab('planner')">Open Planner</button>
+                <button class="button-primary" onclick="setActiveTab('courses')">Open Course</button>
+                <button class="button-primary" onclick="setActiveTab('study')">Start Study Session</button>
             </div>
         </div>
     `;
@@ -2706,7 +2726,7 @@ function openCourseDashboard(name) {
                 <h3>${name}</h3>
             </div>
             <div style="display:flex; gap:8px; align-items:center;">
-                <button class="secondary-btn" onclick="closeCourseDashboard()">← Back</button>
+                <button class="button-secondary" onclick="closeCourseDashboard()">← Back</button>
             </div>
         </div>
         <div class="course-detail-grid">
@@ -2758,7 +2778,7 @@ function openCourseDashboard(name) {
                         ${relatedTasks.map(t => `
                             <div class="task-item ${t.done ? 'done' : ''}">
                                 <div><strong>${t.title}</strong><p>${t.deadline || 'No deadline'} • ${t.priority}</p></div>
-                                <div style="display:flex; gap:6px;"><button class="task-action" onclick="togglePlannerTask(${t.id})">✓</button></div>
+                                <div style="display:flex; gap:6px;"><button class="button-tertiary" onclick="togglePlannerTask(${t.id})">✓</button></div>
                             </div>
                         `).join('')}
                     </div>
@@ -2828,10 +2848,10 @@ function renderStudyCenter() {
                 <div class="study-timer-row">
                     <div class="study-timer-display"><span id="timerDisplay">00:00</span></div>
                     <div class="study-timer-actions">
-                        <button class="panel-btn" onclick="startTimer()">Start</button>
-                        <button class="panel-btn" onclick="pauseTimer()">Pause</button>
-                        <button class="panel-btn" onclick="resumeTimer()">Resume</button>
-                        <button class="secondary-btn" onclick="resetTimer()">Reset</button>
+                        <button class="button-primary" onclick="startTimer()">Start</button>
+                        <button class="button-primary" onclick="pauseTimer()">Pause</button>
+                        <button class="button-primary" onclick="resumeTimer()">Resume</button>
+                        <button class="button-secondary" onclick="resetTimer()">Reset</button>
                     </div>
                 </div>
             </div>
@@ -3671,9 +3691,9 @@ function renderCalendarDay() {
                 <h3>${displayDate}</h3>
             </div>
             <div class="calendar-day-hero-actions">
-                <button class="secondary-btn" onclick="setCalendarView('month')">Month</button>
-                <button class="secondary-btn" onclick="setCalendarView('week')">Week</button>
-                <button class="panel-btn" onclick="openCalendarPopup({ date: '${dateStr}', type: 'task' })">Add Item</button>
+                <button class="button-secondary" onclick="setCalendarView('month')">Month</button>
+                <button class="button-secondary" onclick="setCalendarView('week')">Week</button>
+                <button class="button-primary" onclick="openCalendarPopup({ date: '${dateStr}', type: 'task' })">Add Item</button>
             </div>
         </div>
         <div class="calendar-day-list">

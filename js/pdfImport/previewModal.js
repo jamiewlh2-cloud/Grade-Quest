@@ -26,11 +26,11 @@ function ensureOverlay() {
                     <h3 style="margin:4px 0 0;">Review the extracted assessments</h3>
                 </div>
                 <div style="display:flex; gap:8px; flex-wrap:wrap;">
-                    <button type="button" data-preview-action="use-parser" class="secondary-btn">Use Parser</button>
-                    <button type="button" data-preview-action="use-ai" class="panel-btn">Use AI</button>
-                    <button type="button" data-preview-action="add-row" class="secondary-btn">Add Row</button>
-                    <button type="button" data-preview-action="cancel" class="secondary-btn">Cancel</button>
-                    <button type="button" data-preview-action="save" class="panel-btn">Approve Import</button>
+                    <button type="button" data-preview-action="use-parser" class="button-secondary">Use Parser</button>
+                    <button type="button" data-preview-action="use-ai" class="button-primary">Use AI</button>
+                    <button type="button" data-preview-action="add-row" class="button-secondary">Add Row</button>
+                    <button type="button" data-preview-action="cancel" class="button-secondary">Cancel</button>
+                    <button type="button" data-preview-action="save" class="button-primary">Approve Import</button>
                 </div>
             </div>
             <div data-preview-summary style="margin-bottom:12px;"></div>
@@ -213,7 +213,7 @@ window.PreviewModal = {
                                 <div style="font-size:0.85rem; color:#64748b; margin-top:3px;">Editable assessment row</div>
                             </div>
                             <div style="display:flex; gap:8px; flex-wrap:wrap;">
-                                <button type="button" data-preview-action="remove-row" data-preview-index="${index}" class="secondary-btn">Remove</button>
+                                <button type="button" data-preview-action="remove-row" data-preview-index="${index}" class="button-secondary">Remove</button>
                             </div>
                         </div>
                         <div style="display:grid; gap:10px; grid-template-columns:minmax(0, 1.5fr) 120px minmax(0, 1fr);">

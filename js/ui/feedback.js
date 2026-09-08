@@ -30,8 +30,8 @@
                 <p>${message}</p>
                 ${inputValue === null ? '' : '<input class="feedback-dialog-input" type="text" autocomplete="off">'}
                 <div class="feedback-dialog-actions">
-                    <button type="button" class="secondary-btn" data-dialog-cancel>${cancelLabel}</button>
-                    <button type="button" class="${danger ? 'danger-btn' : 'panel-btn'}" data-dialog-confirm>${confirmLabel}</button>
+                    <button type="button" class="button-secondary" data-dialog-cancel>${cancelLabel}</button>
+                    <button type="button" class="${danger ? 'button-destructive' : 'button-primary'}" data-dialog-confirm>${confirmLabel}</button>
                 </div>
             </div>
         `;

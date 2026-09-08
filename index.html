@@ -30,7 +30,7 @@ Date Created: March 13, 2026
     </div>
     <div id="pwaUpdatePrompt" class="pwa-prompt" role="status" aria-live="polite" hidden>
         <span>A new version of GradeQuest is ready.</span>
-        <button id="pwaUpdateButton" type="button" class="secondary-btn">Update</button>
+        <button id="pwaUpdateButton" type="button" class="button-secondary">Update</button>
     </div>
     <div id="toastRegion" class="toast-region" role="status" aria-live="polite" aria-atomic="true"></div>
     <div id="authOverlay" class="auth-overlay" role="dialog" aria-modal="true" aria-labelledby="authTitle">
@@ -69,7 +69,7 @@ Date Created: March 13, 2026
                     <label for="authConfirmPassword">Confirm password</label>
                     <input id="authConfirmPassword" name="confirmPassword" type="password" autocomplete="new-password" minlength="6">
                 </div>
-                <button id="authSubmitButton" type="submit" class="start-btn">Sign in</button>
+                <button id="authSubmitButton" type="submit" class="button-primary">Sign in</button>
             </form>
             <div class="auth-actions">
                 <button id="authForgotButton" type="button" class="auth-link">Forgot password?</button>
@@ -86,15 +86,15 @@ Date Created: March 13, 2026
             </div>
             <div class="header-actions">
                 <span id="authUserLabel" class="auth-user-label" hidden></span>
-                <button id="authChangePasswordButton" type="button" class="secondary-btn auth-header-action" hidden>Change password</button>
-                <button id="authLogoutButton" type="button" class="secondary-btn auth-header-action" hidden>Log out</button>
+                <button id="authChangePasswordButton" type="button" class="button-secondary auth-header-action" hidden>Change password</button>
+                <button id="authLogoutButton" type="button" class="button-secondary auth-header-action" hidden>Log out</button>
                 <button id="pwaInstallButton" class="pwa-install-button" type="button" title="Install GradeQuest">Install App</button>
                 <button class="search-trigger" onclick="openGlobalSearch()" title="Search (Ctrl+K)"><span aria-hidden="true">⌘K</span> Search</button>
-                <button onclick="resetProfile()" class="settings-link">Reset Profile</button>
+                <button onclick="resetProfile()" class="button-tertiary">Reset Profile</button>
             </div>
         </header>
 
-        <div class="hero-card">
+        <div class="workspace-header">
             <div>
                 <p class="eyebrow">Today</p>
                 <h2>Keep your academic work moving.</h2>
@@ -116,29 +116,15 @@ Date Created: March 13, 2026
             </div>
         </div>
 
-        <div class="mobile-nav-shell">
-            <label class="mobile-nav-label" for="mobileTabSelect">Navigate</label>
-            <select id="mobileTabSelect" class="mobile-tab-select" onchange="setActiveTab(this.value)">
-                <option value="home">Overview</option>
-                <option value="grades">Grades</option>
-                <option value="courses">Courses</option>
-                <option value="planner">Planner</option>
-                <option value="study">Study</option>
-                <option value="files">School Files</option>
-                <option value="weekly">Analytics</option>
-                <option value="settings">Settings</option>
-            </select>
-        </div>
-
         <div class="tab-nav" aria-label="Primary navigation">
             <div class="nav-section-label">Workspace</div>
-            <button class="tab-btn active" data-tab="home" onclick="setActiveTab('home')">Overview</button>
-            <button class="tab-btn" data-tab="courses" onclick="setActiveTab('courses')">Courses</button>
-            <button class="tab-btn" data-tab="planner" onclick="setActiveTab('planner')">Planner</button>
-            <button class="tab-btn" data-tab="study" onclick="setActiveTab('study')">Study</button>
-            <button class="tab-btn" data-tab="files" onclick="setActiveTab('files')">Files</button>
-            <button class="tab-btn" data-tab="weekly" onclick="setActiveTab('weekly')">Analytics</button>
-            <button class="tab-btn" data-tab="settings" onclick="setActiveTab('settings')">Settings</button>
+            <button class="primary-nav-button button-tertiary active" data-tab="home" onclick="setActiveTab('home')">Overview</button>
+            <button class="primary-nav-button button-tertiary" data-tab="courses" onclick="setActiveTab('courses')">Courses</button>
+            <button class="primary-nav-button button-tertiary" data-tab="planner" onclick="setActiveTab('planner')">Planner</button>
+            <button class="primary-nav-button button-tertiary" data-tab="study" onclick="setActiveTab('study')">Study</button>
+            <button class="primary-nav-button button-tertiary" data-tab="files" onclick="setActiveTab('files')">Files</button>
+            <button class="primary-nav-button button-tertiary" data-tab="weekly" onclick="setActiveTab('weekly')">Analytics</button>
+            <button class="primary-nav-button button-tertiary" data-tab="settings" onclick="setActiveTab('settings')">Settings</button>
         </div>
 
         <section id="homePanel" class="dashboard-panel active-panel">
@@ -170,13 +156,13 @@ Date Created: March 13, 2026
 
         <section id="gradesPanel" class="dashboard-panel">
             <div class="workspace-context-nav" aria-label="Course workspace navigation">
-                <button class="context-btn" onclick="setActiveTab('courses')">Courses</button>
-                <button class="context-btn active" onclick="setActiveTab('grades')">Grades</button>
-                <button class="context-btn" onclick="setActiveTab('assignments')">Assessments</button>
-                <button class="context-btn" onclick="setActiveTab('notes')">Notes</button>
-                <button class="context-btn" onclick="setActiveTab('files')">Files</button>
+                <button class="context-nav-button button-tertiary" onclick="setActiveTab('courses')">Courses</button>
+                <button class="context-nav-button button-tertiary active" onclick="setActiveTab('grades')">Grades</button>
+                <button class="context-nav-button button-tertiary" onclick="setActiveTab('assignments')">Assessments</button>
+                <button class="context-nav-button button-tertiary" onclick="setActiveTab('notes')">Notes</button>
+                <button class="context-nav-button button-tertiary" onclick="setActiveTab('files')">Files</button>
             </div>
-            <div id="gpaSummary" class="gpa-card">
+            <div id="gpaSummary" class="panel-card summary-block">
                 <label id="gpaLabel">Selected Period GPA</label>
                 <div id="totalGpa" class="gpa-val">0.00</div>
             </div>
@@ -188,7 +174,7 @@ Date Created: March 13, 2026
                     <option value="6">6 Units</option>
                     <option value="1.5">1.5 Units</option>
                 </select>
-                <button onclick="addClass()">+ Create Class</button>
+                <button class="button-primary" onclick="addClass()">+ Create Class</button>
             </div>
 
             <div class="view-controls">
@@ -229,7 +215,7 @@ Date Created: March 13, 2026
                 </div>
                 <div class="chat-input-row">
                     <input type="text" id="gradeChatInput" placeholder="Ask about your final, remaining work, or overall grade..." />
-                    <button onclick="handleGradeChat()" class="chat-send-btn">Ask</button>
+                    <button onclick="handleGradeChat()" class="button-primary chat-send-btn">Ask</button>
                 </div>
             </div>
 
@@ -238,11 +224,11 @@ Date Created: March 13, 2026
 
         <section id="coursesPanel" class="dashboard-panel">
             <div class="workspace-context-nav" aria-label="Course workspace navigation">
-                <button class="context-btn active" onclick="setActiveTab('courses')">Overview</button>
-                <button class="context-btn" onclick="setActiveTab('grades')">Grades</button>
-                <button class="context-btn" onclick="setActiveTab('assignments')">Assessments</button>
-                <button class="context-btn" onclick="setActiveTab('files')">Files</button>
-                <button class="context-btn" onclick="setActiveTab('notes')">Notes</button>
+                <button class="context-nav-button button-tertiary active" onclick="setActiveTab('courses')">Overview</button>
+                <button class="context-nav-button button-tertiary" onclick="setActiveTab('grades')">Grades</button>
+                <button class="context-nav-button button-tertiary" onclick="setActiveTab('assignments')">Assessments</button>
+                <button class="context-nav-button button-tertiary" onclick="setActiveTab('files')">Files</button>
+                <button class="context-nav-button button-tertiary" onclick="setActiveTab('notes')">Notes</button>
             </div>
             <div class="panel-card">
                 <div class="panel-heading">
@@ -269,10 +255,10 @@ Date Created: March 13, 2026
 
         <section id="weeklyPanel" class="dashboard-panel">
             <div class="workspace-context-nav" aria-label="Analytics navigation">
-                <button class="context-btn active" onclick="setActiveTab('weekly')">Progress</button>
-                <button class="context-btn" onclick="setActiveTab('predictor')">Grade analysis</button>
-                <button class="context-btn" onclick="setActiveTab('health')">Course health</button>
-                <button class="context-btn" onclick="setActiveTab('study')">Study history</button>
+                <button class="context-nav-button button-tertiary active" onclick="setActiveTab('weekly')">Progress</button>
+                <button class="context-nav-button button-tertiary" onclick="setActiveTab('predictor')">Grade analysis</button>
+                <button class="context-nav-button button-tertiary" onclick="setActiveTab('health')">Course health</button>
+                <button class="context-nav-button button-tertiary" onclick="setActiveTab('study')">Study history</button>
             </div>
             <div class="panel-card">
                 <div class="panel-heading">
@@ -311,10 +297,10 @@ Date Created: March 13, 2026
 
         <section id="studyPanel" class="dashboard-panel">
             <div class="workspace-context-nav" aria-label="Study navigation">
-                <button class="context-btn active" onclick="setActiveTab('study')">Sessions</button>
-                <button class="context-btn" onclick="setActiveTab('focus')">Focus</button>
-                <button class="context-btn" onclick="setActiveTab('flashcards')">Flashcards</button>
-                <button class="context-btn" onclick="setActiveTab('weekly')">Study history</button>
+                <button class="context-nav-button button-tertiary active" onclick="setActiveTab('study')">Sessions</button>
+                <button class="context-nav-button button-tertiary" onclick="setActiveTab('focus')">Focus</button>
+                <button class="context-nav-button button-tertiary" onclick="setActiveTab('flashcards')">Flashcards</button>
+                <button class="context-nav-button button-tertiary" onclick="setActiveTab('weekly')">Study history</button>
             </div>
             <div class="panel-card">
                 <div class="panel-heading">
@@ -391,13 +377,13 @@ Date Created: March 13, 2026
                     <textarea id="fileNotes" placeholder="Add notes, links, or reminders"></textarea>
                     <textarea id="outlineInput" placeholder="Paste a course outline here. Example: Assignment 1 - 10%, Midterm - 30%, Final Exam - 40%"></textarea>
                     <p class="helper-text">Upload a scanned image or PDF, or paste a course outline to connect weights to your grade tracker.</p>
-                    <button onclick="addStudyFile()" class="panel-btn">
+                    <button onclick="addStudyFile()" class="button-primary">
                         Save Resource
                     </button>
 
                     <button 
                         id="importCourseOutlineBtn"
-                        class="panel-btn"
+                        class="button-primary"
                         type="button">
                         Import Course Outline PDF
                     </button>
@@ -425,8 +411,8 @@ Date Created: March 13, 2026
 
         <section id="plannerPanel" class="dashboard-panel">
             <div class="workspace-context-nav" aria-label="Planner navigation">
-                <button class="context-btn active" onclick="setActiveTab('planner')">List and calendar</button>
-                <button class="context-btn" onclick="setActiveTab('assignments')">Assessments</button>
+                <button class="context-nav-button button-tertiary active" onclick="setActiveTab('planner')">List and calendar</button>
+                <button class="context-nav-button button-tertiary" onclick="setActiveTab('assignments')">Assessments</button>
             </div>
             <div class="panel-card full-width-card">
                 <div class="panel-heading calendar-header">
@@ -436,14 +422,14 @@ Date Created: March 13, 2026
                     </div>
                     <div class="calendar-controls">
                         <div class="view-toggle">
-                            <button id="monthViewBtn" onclick="setCalendarView('month')" class="view-toggle-btn active">Month</button>
-                            <button id="weekViewBtn" onclick="setCalendarView('week')" class="view-toggle-btn">Week</button>
-                            <button id="timelineViewBtn" onclick="setCalendarView('timeline')" class="view-toggle-btn">Timeline</button>
+                            <button id="monthViewBtn" onclick="setCalendarView('month')" class="button-secondary view-toggle-btn active">Month</button>
+                            <button id="weekViewBtn" onclick="setCalendarView('week')" class="button-secondary view-toggle-btn">Week</button>
+                            <button id="timelineViewBtn" onclick="setCalendarView('timeline')" class="button-secondary view-toggle-btn">Timeline</button>
                         </div>
                         <div class="calendar-nav">
-                            <button onclick="previousPeriod()" class="calendar-nav-btn">← Prev</button>
-                            <button onclick="todayPeriod()" class="calendar-nav-btn today">Today</button>
-                            <button onclick="nextPeriod()" class="calendar-nav-btn">Next →</button>
+                            <button onclick="previousPeriod()" class="button-secondary">← Prev</button>
+                            <button onclick="todayPeriod()" class="button-secondary today">Today</button>
+                            <button onclick="nextPeriod()" class="button-secondary">Next →</button>
                         </div>
                     </div>
                 </div>
@@ -466,7 +452,7 @@ Date Created: March 13, 2026
                         <option value="Medium">Medium priority</option>
                         <option value="Low">Low priority</option>
                     </select>
-                    <button onclick="addPlannerTask()" class="panel-btn">Add Task</button>
+                    <button onclick="addPlannerTask()" class="button-primary">Add Task</button>
                 </div>
                 <div id="plannerTimeline" class="timeline"></div>
                 <div id="plannerList" class="task-list"></div>
@@ -482,22 +468,22 @@ Date Created: March 13, 2026
                     </div>
                 </div>
                 <textarea id="notesInput" class="notes-textarea" placeholder="Jot down ideas, study plans, or anything else you want to remember..."></textarea>
-                <button onclick="saveNotes()" class="panel-btn">Save Notes</button>
+                <button onclick="saveNotes()" class="button-primary">Save Notes</button>
             </div>
         </section>
 
         <section id="profilePanel" class="dashboard-panel">
             <div class="workspace-context-nav" aria-label="Settings navigation">
-                <button class="context-btn active" onclick="setActiveTab('profile')">Profile</button>
-                <button class="context-btn" onclick="setActiveTab('settings')">Preferences</button>
+                <button class="context-nav-button button-tertiary active" onclick="setActiveTab('profile')">Profile</button>
+                <button class="context-nav-button button-tertiary" onclick="setActiveTab('settings')">Preferences</button>
             </div>
             <div id="profileContainer"></div>
         </section>
 
         <section id="settingsPanel" class="dashboard-panel">
             <div class="workspace-context-nav" aria-label="Settings navigation">
-                <button class="context-btn" onclick="setActiveTab('profile')">Profile</button>
-                <button class="context-btn active" onclick="setActiveTab('settings')">Preferences</button>
+                <button class="context-nav-button button-tertiary" onclick="setActiveTab('profile')">Profile</button>
+                <button class="context-nav-button button-tertiary active" onclick="setActiveTab('settings')">Preferences</button>
             </div>
             <div class="panel-card">
                 <div class="panel-heading">
@@ -518,7 +504,7 @@ Date Created: March 13, 2026
                     <h3>Global Search</h3>
                     <p class="helper-text">Search courses, tasks, files, notes, flashcards, and outlines</p>
                 </div>
-                <button class="secondary-btn" onclick="closeGlobalSearch()">×</button>
+                <button class="button-secondary" onclick="closeGlobalSearch()">×</button>
             </div>
             <div class="modal-body">
                 <input type="text" id="globalSearchInput" class="search-input" placeholder="Search GradeQuest... (Ctrl+K)" oninput="renderSearchResults(this.value)" autocomplete="off">
@@ -534,7 +520,7 @@ Date Created: March 13, 2026
                     <h3>Schedule a planner item</h3>
                     <p class="helper-text">Create a due task or a timed event directly from the calendar.</p>
                 </div>
-                <button class="secondary-btn" onclick="closeCalendarPopup()">×</button>
+                <button class="button-secondary" onclick="closeCalendarPopup()">×</button>
             </div>
             <div class="modal-body">
                 <div class="form-row">
@@ -576,7 +562,7 @@ Date Created: March 13, 2026
                     <label>Description</label>
                     <textarea id="popupDescription" placeholder="Add details or a quick note..."></textarea>
                 </div>
-                <button onclick="saveCalendarPopupItem()" class="panel-btn">Save to Planner</button>
+                <button onclick="saveCalendarPopupItem()" class="button-primary">Save to Planner</button>
             </div>
         </div>
     </div>

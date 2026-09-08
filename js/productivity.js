@@ -161,7 +161,7 @@ function renderAssignmentsDashboard() {
                 <option value="priority" ${assignmentSort === 'priority' ? 'selected' : ''}>Sort by priority</option>
                 <option value="course" ${assignmentSort === 'course' ? 'selected' : ''}>Sort by course</option>
             </select>
-            <button class="panel-btn" onclick="setActiveTab('planner')">+ Add in Planner</button>
+            <button class="button-primary" onclick="setActiveTab('planner')">+ Add in Planner</button>
         </div>
 
         ${list.length === 0 ? `
@@ -169,7 +169,7 @@ function renderAssignmentsDashboard() {
                 <div class="empty-icon">📋</div>
                 <h4>No assignments match this filter</h4>
                 <p>Add tasks in the Planner tab or adjust your filter to see more.</p>
-                <button class="panel-btn" onclick="setActiveTab('planner')">Open Planner</button>
+                <button class="button-primary" onclick="setActiveTab('planner')">Open Planner</button>
             </div>
         ` : `
             <div class="assignment-list">
@@ -194,9 +194,9 @@ function renderAssignmentsDashboard() {
                             </div>
                             <div class="assignment-actions">
                                 <input type="text" placeholder="Notes..." value="${escapeAttr(task.assignmentNotes || '')}" onchange="updateAssignmentField(${task.id}, 'assignmentNotes', this.value)">
-                                <button class="task-action" onclick="togglePlannerTask(${task.id})">${task.done ? 'Undo' : 'Complete'}</button>
-                                <button class="task-action" onclick="deletePlannerTask(${task.id})">Delete</button>
-                                ${task.course && courses[(task.course || '').toUpperCase()] ? `<button class="task-action" onclick="openCourseDashboard('${escapeAttr((task.course || '').toUpperCase())}')">Course</button>` : ''}
+                                <button class="button-tertiary" onclick="togglePlannerTask(${task.id})">${task.done ? 'Undo' : 'Complete'}</button>
+                                <button class="button-destructive" onclick="deletePlannerTask(${task.id})">Delete</button>
+                                ${task.course && courses[(task.course || '').toUpperCase()] ? `<button class="button-tertiary" onclick="openCourseDashboard('${escapeAttr((task.course || '').toUpperCase())}')">Course</button>` : ''}
                             </div>
                             ${days !== null && !task.done ? `<p class="assignment-due-hint">${days <= 0 ? 'Overdue' : days === 1 ? 'Due tomorrow' : `Due in ${days} days`}</p>` : ''}
                         </div>
@@ -261,7 +261,7 @@ function renderAdvancedStudyAnalytics() {
                 <div class="empty-icon">📊</div>
                 <h4>No study data yet</h4>
                 <p>Start a study session or use Focus Mode to build your analytics profile.</p>
-                <button class="panel-btn" onclick="setActiveTab('study')">Open Study Center</button>
+                <button class="button-primary" onclick="setActiveTab('study')">Open Study Center</button>
             </div>
         ` : `
             <div class="stats-grid productivity-stats">
@@ -389,7 +389,7 @@ function computeAdvisorInsights() {
 function renderAdvisorWidgetHtml() {
     const tips = computeAdvisorInsights();
     return `
-        <button class="widget-card widget-advisor widget-span-2" data-widget-id="advisor" onclick="setActiveTab('home')">
+        <button class="panel-card overview-card widget-advisor widget-span-2" data-widget-id="advisor" onclick="setActiveTab('home')">
             <div class="widget-top">
                 <span class="widget-icon">🧑‍🏫</span>
                 <span class="widget-badge">Advisor</span>
@@ -603,15 +603,15 @@ function renderDashboardCustomization() {
                     <div class="customize-row panel-card ${hidden ? 'widget-hidden' : ''}">
                         <span>${escapeHtml(label)}</span>
                         <div class="customize-actions">
-                            <button class="secondary-btn" onclick="moveWidget('${id}', 'up')" title="Move up">↑</button>
-                            <button class="secondary-btn" onclick="moveWidget('${id}', 'down')" title="Move down">↓</button>
-                            <button class="panel-btn" onclick="toggleWidgetVisibility('${id}')">${hidden ? 'Show' : 'Hide'}</button>
+                            <button class="button-secondary" onclick="moveWidget('${id}', 'up')" title="Move up">↑</button>
+                            <button class="button-secondary" onclick="moveWidget('${id}', 'down')" title="Move down">↓</button>
+                            <button class="button-tertiary" onclick="toggleWidgetVisibility('${id}')">${hidden ? 'Show' : 'Hide'}</button>
                         </div>
                     </div>
                 `;
             }).join('')}
         </div>
-        <button class="secondary-btn" onclick="resetDashboardConfig()">Reset to default layout</button>
+        <button class="button-secondary" onclick="resetDashboardConfig()">Reset to default layout</button>
     `;
 }
 
@@ -682,7 +682,7 @@ function buildTimelineEvents() {
 function renderTimelineWidgetHtml() {
     const upcoming = buildTimelineEvents().filter(e => e.days !== null && e.days >= 0 && !e.done).slice(0, 1)[0];
     return `
-        <button class="widget-card widget-timeline" data-widget-id="timeline" onclick="setActiveTab('planner'); setCalendarView('timeline')">
+        <button class="panel-card overview-card widget-timeline" data-widget-id="timeline" onclick="setActiveTab('planner'); setCalendarView('timeline')">
             <div class="widget-top">
                 <span class="widget-icon">🗓️</span>
                 <span class="widget-badge">Timeline</span>
@@ -841,9 +841,9 @@ function renderFocusModeTimer() {
                 </select>
                 ${topTask ? `<p class="notes-line">Suggested focus: <strong>${escapeHtml(topTask.title)}</strong></p>` : ''}
                 <div class="focus-mode-controls">
-                    ${!focusModeRunning ? `<button class="panel-btn" onclick="startFocusMode()">Start Focus</button>` : `
-                        <button class="panel-btn" onclick="pauseFocusMode()">Pause</button>
-                        <button class="secondary-btn" onclick="stopFocusMode()">Stop</button>
+                    ${!focusModeRunning ? `<button class="button-primary" onclick="startFocusMode()">Start Focus</button>` : `
+                        <button class="button-primary" onclick="pauseFocusMode()">Pause</button>
+                        <button class="button-secondary" onclick="stopFocusMode()">Stop</button>
                     `}
                 </div>
             </div>
@@ -1010,7 +1010,7 @@ function renderFlashcardsDashboard() {
                 <option value="General">General</option>
                 ${courseOptions.map(c => `<option value="${c}">${c}</option>`).join('')}
             </select>
-            <button class="panel-btn" onclick="addFlashcard(document.getElementById('flashcardFront').value, document.getElementById('flashcardBack').value, document.getElementById('flashcardCourse').value)">Add Flashcard</button>
+            <button class="button-primary" onclick="addFlashcard(document.getElementById('flashcardFront').value, document.getElementById('flashcardBack').value, document.getElementById('flashcardCourse').value)">Add Flashcard</button>
         </div>
 
         <div class="stats-grid productivity-stats">
@@ -1041,7 +1041,7 @@ function renderFlashcardsDashboard() {
                         <strong>${escapeHtml(c.front)}</strong>
                         <p>${escapeHtml(c.back)} • ${escapeHtml(c.course)} • Next: ${c.nextReview || 'today'}</p>
                     </div>
-                    <button class="task-action" onclick="deleteFlashcard(${c.id})">×</button>
+                    <button class="button-destructive" onclick="deleteFlashcard(${c.id})">×</button>
                 </div>
             `).join('') : ''}
         </div>
@@ -1062,10 +1062,10 @@ function renderFlashcardReviewSession(due) {
             </div>
             <p class="notes-line">Tap card to flip • Rate your recall:</p>
             <div class="flashcard-rating">
-                <button class="secondary-btn" onclick="reviewFlashcard(${card.id}, 1); flashcardReviewIndex=0;">Again</button>
-                <button class="secondary-btn" onclick="reviewFlashcard(${card.id}, 3); flashcardReviewIndex=0;">Hard</button>
-                <button class="panel-btn" onclick="reviewFlashcard(${card.id}, 4); flashcardReviewIndex=0;">Good</button>
-                <button class="panel-btn" onclick="reviewFlashcard(${card.id}, 5); flashcardReviewIndex=0;">Easy</button>
+                <button class="button-secondary" onclick="reviewFlashcard(${card.id}, 1); flashcardReviewIndex=0;">Again</button>
+                <button class="button-secondary" onclick="reviewFlashcard(${card.id}, 3); flashcardReviewIndex=0;">Hard</button>
+                <button class="button-primary" onclick="reviewFlashcard(${card.id}, 4); flashcardReviewIndex=0;">Good</button>
+                <button class="button-primary" onclick="reviewFlashcard(${card.id}, 5); flashcardReviewIndex=0;">Easy</button>
             </div>
         </div>
     `;
@@ -1074,7 +1074,7 @@ function renderFlashcardReviewSession(due) {
 function renderFlashcardsWidgetHtml() {
     const due = getDueFlashcards().length;
     return `
-        <button class="widget-card widget-flashcards widget-span-2" data-widget-id="flashcards" onclick="setActiveTab('flashcards')">
+        <button class="panel-card overview-card widget-flashcards widget-span-2" data-widget-id="flashcards" onclick="setActiveTab('flashcards')">
             <div class="widget-top">
                 <span class="widget-icon">🃏</span>
                 <span class="widget-badge">Flashcards</span>
@@ -1095,7 +1095,7 @@ function renderAssignmentsWidgetHtml() {
     const pending = (plannerTasks || []).filter(t => !t.done).length;
     const overdue = (plannerTasks || []).filter(t => !t.done && t.deadline && daysBetweenFromToday(t.deadline) < 0).length;
     return `
-        <button class="widget-card widget-assignments widget-span-2" data-widget-id="assignments" onclick="setActiveTab('assignments')">
+        <button class="panel-card overview-card widget-assignments widget-span-2" data-widget-id="assignments" onclick="setActiveTab('assignments')">
             <div class="widget-top">
                 <span class="widget-icon">📋</span>
                 <span class="widget-badge">Assignments</span>
