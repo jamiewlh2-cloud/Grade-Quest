@@ -78,6 +78,7 @@ function applyUserConfig(name, schoolKey) {
 }
 
 function saveAchievements() {
+    if (!GradeQuestStorage.getActiveUser()) return;
     GradeQuestStorage.setJson('achievements', achievements);
 }
 
@@ -93,11 +94,13 @@ function toggleTheme() {
 }
 
 function save() {
+    if (!GradeQuestStorage.getActiveUser()) return;
     GradeQuestStorage.setJson('courses', courses);
     render();
 }
 
 function saveStudyData() {
+    if (!GradeQuestStorage.getActiveUser()) return;
     GradeQuestStorage.setJson('studyFiles', studyFiles);
     GradeQuestStorage.setJson('plannerTasks', plannerTasks);
     GradeQuestStorage.set('studyNotes', notes);
@@ -105,6 +108,7 @@ function saveStudyData() {
 }
 
 function saveStudySessions() {
+    if (!GradeQuestStorage.getActiveUser()) return;
     GradeQuestStorage.setJson('studySessions', studySessions);
 }
 
@@ -153,7 +157,7 @@ function ensureCourseEntry(courseCode) {
     const normalizedCode = (courseCode || 'GENERAL').toUpperCase();
     if (!courses[normalizedCode]) {
         courses[normalizedCode] = { grades: [], target: 80, units: 3 };
-        GradeQuestStorage.setJson('courses', courses);
+        if (GradeQuestStorage.getActiveUser()) GradeQuestStorage.setJson('courses', courses);
     }
 }
 
@@ -706,6 +710,7 @@ function importBackupFile(event) {
     const reader = new FileReader();
     reader.onload = e => {
         try {
+            if (!GradeQuestStorage.getActiveUser()) return;
             const data = JSON.parse(e.target.result);
             if (typeof data !== 'object' || !data) throw new Error('Invalid backup file.');
             if (data.courses !== undefined) GradeQuestStorage.setJson('courses', data.courses);
@@ -873,6 +878,7 @@ function saveSettings() {
 }
 
 function saveSemesterGoals() {
+    if (!GradeQuestStorage.getActiveUser()) return;
     GradeQuestStorage.setJson('semesterGoals', semesterGoals);
 }
 
@@ -974,6 +980,7 @@ function computeOverallGoalsProgress() {
 }
   
 function saveWeeklyReviewHistory() {
+    if (!GradeQuestStorage.getActiveUser()) return;
     GradeQuestStorage.setJson('weeklyReviewHistory', weeklyReviewHistory);
 }
 

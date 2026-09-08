@@ -177,6 +177,7 @@ window.PDFImportLearningTest = window.PDFImportLearningTest || {};
     }
 
     function saveState(state) {
+        if (!GradeQuestStorage.getActiveUser()) return state;
         const records = pruneRecordsToLimit(Array.isArray(state.records) ? state.records : []);
         const compactState = buildStoredState(records);
 

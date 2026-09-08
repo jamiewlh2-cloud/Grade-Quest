@@ -56,10 +56,12 @@ function getDashboardConfig() {
 }
 
 function saveFlashcards() {
+    if (!GradeQuestStorage.getActiveUser()) return;
     GradeQuestStorage.setJson('flashcards', flashcards);
 }
 
 function saveDashboardConfig() {
+    if (!GradeQuestStorage.getActiveUser()) return;
     GradeQuestStorage.setJson('dashboardConfig', dashboardConfig);
 }
 

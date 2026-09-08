@@ -31,6 +31,7 @@ window.PDFImportLearningTestTrainingData = window.PDFImportLearningTestTrainingD
     }
 
     function saveHybridState(state) {
+        if (!GradeQuestStorage.getActiveUser()) return;
         GradeQuestStorage.setJson(HYBRID_STORAGE_KEY, {
             records: Array.isArray(state.records) ? state.records : []
         });

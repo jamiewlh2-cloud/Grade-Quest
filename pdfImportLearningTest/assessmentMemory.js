@@ -31,6 +31,7 @@ window.PDFImportLearningTest = window.PDFImportLearningTest || {};
     }
 
     function saveState(state) {
+        if (!GradeQuestStorage.getActiveUser()) return;
         GradeQuestStorage.setJson(STORAGE_KEY, state);
     }
 
