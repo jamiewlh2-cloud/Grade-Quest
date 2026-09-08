@@ -1,52 +1,3 @@
-:root {
-    --space-1: 4px;
-    --space-2: 8px;
-    --space-3: 12px;
-    --space-4: 16px;
-    --space-5: 24px;
-    --space-6: 32px;
-    --space-7: 40px;
-    --radius-sm: 8px;
-    --radius-md: 12px;
-    --radius-lg: 16px;
-    --radius-xl: 24px;
-    --primary: #6366f1;
-    --accent: #10b981;
-    --bg: #e9eef6;
-    --surface: #ffffff;
-    --surface-secondary: #f8fafc;
-    --surface-tertiary: #eef2f7;
-    --surface-muted: #f1f5f9;
-    --text: #1e293b;
-    --text-muted: #64748b;
-    --muted: var(--text-muted);
-    --danger: #ef4444;
-    --border: rgba(226, 232, 240, 0.95);
-    --card-border: var(--border);
-    --shadow: rgba(15, 23, 42, 0.08);
-    --input-bg: #f8fafc;
-    --card-bg: var(--surface);
-    --focus-ring: #f59e0b;
-}
-
-body.dark-mode {
-    --bg: #0b1220;
-    --surface: #0f172a;
-    --surface-secondary: #111f33;
-    --surface-tertiary: #16273f;
-    --surface-muted: #1f2a44;
-    --text: #e2e8f0;
-    --text-muted: #94a3b8;
-    --muted: var(--text-muted);
-    --danger: #fda4af;
-    --border: rgba(148, 163, 184, 0.24);
-    --card-border: var(--border);
-    --shadow: rgba(0, 0, 0, 0.45);
-    --input-bg: #111f33;
-    --card-bg: var(--surface);
-    background: var(--bg);
-}
-
 @keyframes slideUpFade {
     from {
         opacity: 0;
@@ -81,6 +32,26 @@ body.dark-mode {
         opacity: 1;
         transform: translateY(0) scale(1);
     }
+}
+
+@keyframes workspacePageIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes modalIn {
+    from { opacity: 0; transform: scale(0.985); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes modalOverlayIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes modalOverlayOut {
+    from { opacity: 1; }
+    to { opacity: 0; }
 }
 
 * {
@@ -1769,7 +1740,7 @@ transition: width 0.4s ease;
 }
 
 .view-toggle-btn.active {
-    background: white;
+    background: var(--surface);
     color: var(--primary);
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
@@ -1847,8 +1818,8 @@ transition: width 0.4s ease;
 }
 
 .calendar-day.other-month {
-    background: #f8fafc;
-    color: #cbd5e1;
+    background: var(--surface-secondary);
+    color: var(--text-muted);
 }
 
 .calendar-day.today-highlight {
@@ -1928,7 +1899,7 @@ transition: width 0.4s ease;
 }
 
 .calendar-events-list {
-    background: #f8fafc;
+    background: var(--surface-secondary);
     border-radius: 14px;
     padding: 16px;
     border: 1px solid var(--border);
@@ -1950,7 +1921,7 @@ transition: width 0.4s ease;
 }
 
 .calendar-event-item {
-    background: white;
+    background: var(--surface);
     padding: 12px 14px;
     border-radius: 10px;
     border-left: 4px solid var(--primary);
@@ -2136,16 +2107,22 @@ transition: width 0.4s ease;
     background: rgba(15, 23, 42, 0.55);
     z-index: 1100;
     padding: 20px;
+    animation: modalOverlayIn 200ms ease-out both;
+}
+
+.modal-overlay.is-closing {
+    animation: modalOverlayOut 200ms ease-out both;
+    pointer-events: none;
 }
 
 .modal-card {
     width: 100%;
     max-width: 520px;
-    border-radius: 24px;
-    background: white;
+    border-radius: var(--radius-panel);
+    background: var(--surface);
     padding: 24px;
     box-shadow: 0 24px 60px rgba(15, 23, 42, 0.18);
-    animation: slideUpFade 0.4s ease;
+    animation: modalIn 200ms ease-out both;
 }
 
 .modal-header {
@@ -2386,6 +2363,24 @@ body.dark-mode .stat {
     --shadow-modal: 0 16px 40px rgba(24, 35, 45, 0.18);
 }
 
+body.dark-mode {
+    --bg: #111820;
+    --surface: #18232d;
+    --surface-secondary: #202e39;
+    --surface-tertiary: #293b47;
+    --surface-muted: #314550;
+    --text: #edf3f5;
+    --text-muted: #aebdc4;
+    --muted: #aebdc4;
+    --border: #40535f;
+    --card-border: #40535f;
+    --shadow: rgba(0, 0, 0, 0.32);
+    --input-bg: #202e39;
+    --card-bg: #18232d;
+    --focus-ring: #6bb5b8;
+    --danger: #f28b82;
+}
+
 body {
     font-family: Inter, 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
     background: var(--bg);
@@ -2485,7 +2480,10 @@ h1 {
     transition: background-color 0.18s ease, color 0.18s ease;
 }
 
-.dashboard-panel.active-panel { animation: none; }
+.dashboard-panel.active-panel { animation: workspacePageIn 200ms ease-out both; }
+.dashboard-panel.context-view-active > :not(.workspace-context-nav):not(.dashboard-panel) {
+    display: none;
+}
 .hub-shell { gap: 24px; }
 .hub-intro { padding: 0 0 18px; border-bottom: 1px solid var(--border); border-radius: 0; background: transparent; box-shadow: none; }
 .hub-intro h3 { font-size: 1.15rem; }
@@ -2924,5 +2922,52 @@ button { transition: background-color 0.18s ease, border-color 0.18s ease, color
         padding: 7px 3px;
         text-align: center;
         font-size: 0.65rem;
+    }
+}
+
+body.dark-mode .modal-card,
+body.dark-mode .auth-card,
+body.dark-mode .panel-card,
+body.dark-mode .course-card,
+body.dark-mode .resource-item,
+body.dark-mode .task-item,
+body.dark-mode .stat,
+body.dark-mode .view-controls,
+body.dark-mode .calendar-day,
+body.dark-mode .calendar-week-day,
+body.dark-mode .calendar-events-list,
+body.dark-mode .calendar-event-item,
+body.dark-mode .chat-window,
+body.dark-mode .chat-message,
+body.dark-mode .empty-state {
+    background: var(--surface);
+    border-color: var(--border);
+    color: var(--text);
+    box-shadow: var(--shadow-none);
+}
+
+body.dark-mode .chat-window,
+body.dark-mode .chat-message.bot,
+body.dark-mode .calendar-events-list,
+body.dark-mode .view-controls,
+body.dark-mode .calendar-day.other-month,
+body.dark-mode .calendar-week-day.other-week {
+    background: var(--surface-secondary);
+}
+
+body.dark-mode .chat-message.bot,
+body.dark-mode .chat-message.user,
+body.dark-mode .calendar-event-item strong,
+body.dark-mode .panel-heading h3,
+body.dark-mode .panel-heading p,
+body.dark-mode .course-card strong,
+body.dark-mode .gpa-val {
+    color: var(--text);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .dashboard-panel.active-panel,
+    .modal-card {
+        animation: none;
     }
 }

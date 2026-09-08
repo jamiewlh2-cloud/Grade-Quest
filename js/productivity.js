@@ -476,6 +476,7 @@ function performGlobalSearch(query) {
 function openGlobalSearch() {
     const overlay = document.getElementById('globalSearchOverlay');
     if (!overlay) return;
+    overlay.classList.remove('is-closing');
     overlay.classList.remove('hidden');
     const input = document.getElementById('globalSearchInput');
     if (input) { input.value = ''; input.focus(); renderSearchResults(''); }
@@ -483,7 +484,11 @@ function openGlobalSearch() {
 
 function closeGlobalSearch() {
     const overlay = document.getElementById('globalSearchOverlay');
-    if (overlay) overlay.classList.add('hidden');
+    if (window.closeModalWithTransition) {
+        window.closeModalWithTransition(overlay);
+    } else if (overlay) {
+        overlay.classList.add('hidden');
+    }
 }
 
 function renderSearchResults(query) {

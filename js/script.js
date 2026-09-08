@@ -197,6 +197,38 @@ function ensureWorkspacePanelOwnership() {
     });
 }
 
+function updateContextNavigation(activeTab) {
+    document.querySelectorAll('.workspace-context-nav').forEach(nav => {
+        nav.querySelectorAll('.context-nav-button').forEach(button => {
+            const match = String(button.getAttribute('onclick') || '').match(/setActiveTab\('([^']+)'\)/);
+            button.classList.toggle('active', Boolean(match && match[1] === activeTab));
+        });
+    });
+}
+
+function updateWorkspaceViewState(primaryTab, targetPanelKey) {
+    document.querySelectorAll('.dashboard-panel').forEach(panel => {
+        panel.classList.remove('active-panel', 'context-view-active');
+    });
+
+    const primaryPanel = document.getElementById(`${primaryTab}Panel`);
+    const targetPanel = document.getElementById(`${targetPanelKey}Panel`);
+    if (primaryPanel) primaryPanel.classList.add('active-panel');
+    if (targetPanel && targetPanel !== primaryPanel) {
+        targetPanel.classList.add('active-panel');
+        if (primaryPanel) primaryPanel.classList.add('context-view-active');
+    }
+}
+
+window.closeModalWithTransition = function (overlay) {
+    if (!overlay || overlay.classList.contains('hidden')) return;
+    overlay.classList.add('is-closing');
+    window.setTimeout(() => {
+        overlay.classList.remove('is-closing');
+        overlay.classList.add('hidden');
+    }, 200);
+};
+
 function setActiveTab(tab) {
     const primaryTab = {
         home: 'home',
@@ -217,9 +249,6 @@ function setActiveTab(tab) {
         settings: 'settings'
     }[tab] || tab;
     const targetPanelKey = workspacePanelOwners[tab] ? tab : primaryTab;
-    const primaryPanel = document.getElementById(`${primaryTab}Panel`);
-    const targetPanel = document.getElementById(`${targetPanelKey}Panel`);
-
     ensureWorkspacePanelOwnership();
     localStorage.setItem('activeDashboardTab', tab);
 
@@ -228,19 +257,13 @@ function setActiveTab(tab) {
         btn.classList.toggle('active', label === primaryTab || (primaryTab === 'home' && label === 'home'));
     });
 
-    document.querySelectorAll('.dashboard-panel').forEach(panel => {
-        panel.classList.remove('active-panel');
-    });
+    updateContextNavigation(tab);
+    updateWorkspaceViewState(primaryTab, targetPanelKey);
 
-    if (primaryPanel) {
-        primaryPanel.classList.add('active-panel');
-    }
-    if (targetPanel && targetPanel !== primaryPanel) {
-        targetPanel.classList.add('active-panel');
-    }
+    const primaryPanel = document.getElementById(`${primaryTab}Panel`);
     if (primaryPanel) {
         window.requestAnimationFrame(() => {
-            primaryPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
         });
     }
 }
@@ -3881,7 +3904,7 @@ function openCalendarPopup({ date = '', startTime = '', endTime = '', type = 'ta
 function closeCalendarPopup() {
     const popup = document.getElementById('calendarPopup');
     if (!popup) return;
-    popup.classList.add('hidden');
+    window.closeModalWithTransition(popup);
 }
 
 function toggleCalendarPopupFields() {

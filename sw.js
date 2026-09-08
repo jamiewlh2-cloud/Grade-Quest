@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'gradequest-shell-v3';
+const CACHE_VERSION = 'gradequest-shell-v4';
 const RUNTIME_CACHE = 'gradequest-runtime-v1';
 const CDN_ASSETS = [
     'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js',
