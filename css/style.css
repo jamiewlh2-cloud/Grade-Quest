@@ -144,6 +144,11 @@ button:disabled {
     font-weight: 700;
 }
 
+.pwa-status[hidden],
+.pwa-prompt[hidden] {
+    display: none !important;
+}
+
 .auth-overlay {
     position: fixed;
     inset: 0;
@@ -3026,6 +3031,68 @@ body.dark-mode .panel-heading p,
 body.dark-mode .hub-intro h3,
 body.dark-mode .workspace-header h2 {
     color: var(--text);
+}
+
+body.dark-mode .panel-card,
+body.dark-mode .resource-item,
+body.dark-mode .task-item,
+body.dark-mode .course-card,
+body.dark-mode .weekly-stat-card,
+body.dark-mode .weekly-card,
+body.dark-mode .settings-layout .panel-card {
+    background: var(--surface);
+    border-color: var(--border);
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+body.dark-mode input,
+body.dark-mode select,
+body.dark-mode textarea,
+body.dark-mode .view-controls,
+body.dark-mode .context-nav-button {
+    color: var(--text);
+    background: var(--surface-secondary);
+    border-color: var(--border);
+}
+
+body.dark-mode input::placeholder,
+body.dark-mode textarea::placeholder {
+    color: var(--muted);
+}
+
+.workspace-context-nav {
+    margin-bottom: 20px;
+}
+
+#homePanel .hub-shell,
+#weeklyPanel .panel-card,
+#filesPanel > .panel-card {
+    gap: 20px;
+}
+
+#homePanel .widget-grid {
+    margin-top: 4px;
+}
+
+#weeklyPanel .panel-card > .panel-heading,
+#filesPanel > .panel-card > .panel-heading {
+    margin-bottom: 4px;
+}
+
+#weeklyPanel .weekly-section {
+    margin-top: 24px;
+}
+
+#filesPanel .panel-form {
+    gap: 12px;
+    padding: 4px 0 8px;
+}
+
+#filesPanel .resource-list,
+#filesPanel .outline-preview {
+    display: grid;
+    gap: 12px;
+    margin-top: 20px;
 }
 
 @media (prefers-reduced-motion: reduce) {

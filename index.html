@@ -28,10 +28,6 @@ Date Created: March 13, 2026
         <span class="pwa-status-dot" aria-hidden="true"></span>
         <span>You are offline. Saved GradeQuest data is still available.</span>
     </div>
-    <div id="pwaUpdatePrompt" class="pwa-prompt" role="status" aria-live="polite" hidden>
-        <span>A new version of GradeQuest is ready.</span>
-        <button id="pwaUpdateButton" type="button" class="button-secondary">Update</button>
-    </div>
     <div id="toastRegion" class="toast-region" role="status" aria-live="polite" aria-atomic="true"></div>
     <div id="authOverlay" class="auth-overlay" role="dialog" aria-modal="true" aria-labelledby="authTitle">
         <div class="auth-card">
@@ -247,9 +243,8 @@ Date Created: March 13, 2026
         <section id="weeklyPanel" class="dashboard-panel">
             <div class="workspace-context-nav" aria-label="Analytics navigation">
                 <button class="context-nav-button button-tertiary active" data-context-view="progress" onclick="setActiveTab('weekly', 'progress')">Progress</button>
-                <button class="context-nav-button button-tertiary" onclick="setActiveTab('predictor')">Grade analysis</button>
-                <button class="context-nav-button button-tertiary" onclick="setActiveTab('health')">Course health</button>
-                <button class="context-nav-button button-tertiary" data-context-view="history" onclick="setActiveTab('weekly', 'history')">Study history</button>
+                <button class="context-nav-button button-tertiary" data-context-view="predictor" onclick="setActiveTab('predictor', 'predictor')">Grade analysis</button>
+                <button class="context-nav-button button-tertiary" data-context-view="health" onclick="setActiveTab('health', 'health')">Course health</button>
             </div>
             <div class="panel-card">
                 <div class="panel-heading">

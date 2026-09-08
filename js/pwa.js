@@ -1,61 +1,51 @@
 (function () {
     const offlineIndicator = document.getElementById('offlineIndicator');
-    const updatePrompt = document.getElementById('pwaUpdatePrompt');
-    const updateButton = document.getElementById('pwaUpdateButton');
     const installButton = document.getElementById('pwaInstallButton');
-    const updateHandledKey = 'gradequestUpdateHandled';
-    let waitingWorker = null;
     let hasControlledClient = Boolean(navigator.serviceWorker && navigator.serviceWorker.controller);
+    let connectionStateKnown = false;
 
     function updateConnectionStatus() {
         if (!offlineIndicator) return;
-        const offline = navigator.onLine === false;
+        const offline = connectionStateKnown && navigator.onLine === false;
         offlineIndicator.hidden = !offline;
         document.body.classList.toggle('is-offline', offline);
     }
 
-    function showUpdatePrompt(worker) {
-        waitingWorker = worker;
-        if (updatePrompt) updatePrompt.hidden = false;
-    }
-
-    function hideUpdatePrompt() {
-        waitingWorker = null;
-        if (updatePrompt) updatePrompt.hidden = true;
-    }
-
-    function activateUpdate() {
-        if (!waitingWorker) return;
-        sessionStorage.setItem(updateHandledKey, '1');
-        hideUpdatePrompt();
-        waitingWorker.postMessage({ type: 'SKIP_WAITING' });
-    }
-
     function registerServiceWorker() {
         if (!('serviceWorker' in navigator)) return;
-        hideUpdatePrompt();
-        const suppressWaitingPrompt = sessionStorage.getItem(updateHandledKey) === '1';
         navigator.serviceWorker.register('./sw.js', { scope: './' }).then(registration => {
-            return registration.update().catch(() => undefined).then(() => {
-                if (registration.waiting && !suppressWaitingPrompt) showUpdatePrompt(registration.waiting);
-                sessionStorage.removeItem(updateHandledKey);
+            const activateWaitingWorker = () => {
+                if (registration.waiting) registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+            };
+            registration.addEventListener('updatefound', () => {
+                const installingWorker = registration.installing;
+                if (!installingWorker) return;
+                installingWorker.addEventListener('statechange', () => {
+                    if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                        activateWaitingWorker();
+                    }
+                });
             });
+            return registration.update().catch(() => undefined).then(activateWaitingWorker);
         }).catch(error => console.warn('GradeQuest service worker registration failed:', error));
 
         navigator.serviceWorker.addEventListener('controllerchange', () => {
             if (!hasControlledClient) {
                 hasControlledClient = true;
-                hideUpdatePrompt();
                 return;
             }
-            hideUpdatePrompt();
             window.location.reload();
         });
     }
 
-    window.addEventListener('online', updateConnectionStatus);
-    window.addEventListener('offline', updateConnectionStatus);
-    if (updateButton) updateButton.addEventListener('click', activateUpdate);
+    window.addEventListener('online', () => {
+        connectionStateKnown = true;
+        updateConnectionStatus();
+    });
+    window.addEventListener('offline', () => {
+        connectionStateKnown = true;
+        updateConnectionStatus();
+    });
     window.addEventListener('appinstalled', () => {
         window.gradeQuestInstallEvent = null;
         document.body.classList.remove('can-install');
@@ -69,6 +59,6 @@
             document.body.classList.remove('can-install');
         });
     }
-    updateConnectionStatus();
+    if (offlineIndicator) offlineIndicator.hidden = true;
     registerServiceWorker();
 }());

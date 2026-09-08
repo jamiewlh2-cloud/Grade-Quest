@@ -198,11 +198,13 @@ function ensureWorkspacePanelOwnership() {
 }
 
 function updateContextNavigation(activeTab, contextView) {
+    const activeContextView = contextView || (activeTab === 'weekly' ? 'progress' : activeTab);
     document.querySelectorAll('.workspace-context-nav').forEach(nav => {
         nav.querySelectorAll('.context-nav-button').forEach(button => {
-            const match = String(button.getAttribute('onclick') || '').match(/setActiveTab\('([^']+)'\)/);
-            const contextMatch = button.dataset.contextView && button.dataset.contextView === contextView;
-            button.classList.toggle('active', Boolean(contextMatch || (!contextView && match && match[1] === activeTab)));
+            const match = String(button.getAttribute('onclick') || '').match(/setActiveTab\('([^']+)'/);
+            const contextMatch = button.dataset.contextView && button.dataset.contextView === activeContextView;
+            const fallbackMatch = !button.dataset.contextView && match && match[1] === activeTab;
+            button.classList.toggle('active', Boolean(contextMatch || fallbackMatch));
         });
     });
 }
