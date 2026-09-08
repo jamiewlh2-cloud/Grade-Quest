@@ -176,11 +176,29 @@ function findLinkedAssessment(courseCode, title) {
 }
 
 function setActiveTab(tab) {
+    const primaryTab = {
+        home: 'home',
+        courses: 'courses',
+        grades: 'courses',
+        assignments: 'planner',
+        planner: 'planner',
+        study: 'study',
+        focus: 'study',
+        flashcards: 'study',
+        files: 'files',
+        notes: 'courses',
+        weekly: 'weekly',
+        predictor: 'weekly',
+        health: 'weekly',
+        goals: 'weekly',
+        profile: 'settings',
+        settings: 'settings'
+    }[tab] || tab;
     localStorage.setItem('activeDashboardTab', tab);
 
     document.querySelectorAll('.tab-btn').forEach(btn => {
         const label = (btn.dataset.tab || btn.textContent.trim().toLowerCase()).toLowerCase();
-        btn.classList.toggle('active', label === tab || (tab === 'home' && label === 'home'));
+        btn.classList.toggle('active', label === primaryTab || (primaryTab === 'home' && label === 'home'));
     });
 
     document.querySelectorAll('.dashboard-panel').forEach(panel => {
@@ -196,8 +214,8 @@ function setActiveTab(tab) {
     }
 
     const mobileTabSelect = document.getElementById('mobileTabSelect');
-    if (mobileTabSelect && mobileTabSelect.value !== tab) {
-        mobileTabSelect.value = tab;
+    if (mobileTabSelect && mobileTabSelect.value !== primaryTab) {
+        mobileTabSelect.value = primaryTab;
     }
 }
 

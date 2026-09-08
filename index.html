@@ -12,7 +12,7 @@ Date Created: March 13, 2026
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GradeQuest - Academic Hub</title>
-    <meta name="theme-color" content="#6366f1">
+    <meta name="theme-color" content="#17324d">
     <meta name="description" content="GradeQuest academic dashboard for courses, grades, assessments, and study planning.">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -80,6 +80,7 @@ Date Created: March 13, 2026
     <div class="container">
         <header>
             <div>
+                <p class="workspace-kicker">GradeQuest / Workspace</p>
                 <h1 id="mainTitle">Grade Tracker</h1>
                 <p id="profileSubtitle" class="subtitle">Your personal academic hub</p>
             </div>
@@ -88,15 +89,16 @@ Date Created: March 13, 2026
                 <button id="authChangePasswordButton" type="button" class="secondary-btn auth-header-action" hidden>Change password</button>
                 <button id="authLogoutButton" type="button" class="secondary-btn auth-header-action" hidden>Log out</button>
                 <button id="pwaInstallButton" class="pwa-install-button" type="button" title="Install GradeQuest">Install App</button>
-                <button class="search-trigger" onclick="openGlobalSearch()" title="Search (Ctrl+K)">🔍 Search</button>
+                <button class="search-trigger" onclick="openGlobalSearch()" title="Search (Ctrl+K)"><span aria-hidden="true">⌘K</span> Search</button>
                 <button onclick="resetProfile()" class="settings-link">Reset Profile</button>
             </div>
         </header>
 
         <div class="hero-card">
             <div>
-                <p class="eyebrow">Student Dashboard</p>
-                <h2>Keep grades, files, deadlines, and notes in one place.</h2>
+                <p class="eyebrow">Today</p>
+                <h2>Keep your academic work moving.</h2>
+                <p class="hero-description">A focused workspace for courses, deadlines, grades, and study time.</p>
             </div>
             <div class="hero-stats">
                 <div class="hero-stat">
@@ -117,46 +119,34 @@ Date Created: March 13, 2026
         <div class="mobile-nav-shell">
             <label class="mobile-nav-label" for="mobileTabSelect">Navigate</label>
             <select id="mobileTabSelect" class="mobile-tab-select" onchange="setActiveTab(this.value)">
-                <option value="home">Home</option>
+                <option value="home">Overview</option>
                 <option value="grades">Grades</option>
                 <option value="courses">Courses</option>
-                <option value="assignments">Assignments</option>
-                <option value="goals">Goals</option>
-                <option value="predictor">Semester Predictor</option>
-                <option value="weekly">Weekly Review</option>
-                <option value="study">Study Center</option>
-                <option value="flashcards">Flashcards</option>
-                <option value="files">School Files</option>
                 <option value="planner">Planner</option>
-                <option value="notes">Notes</option>
-                <option value="profile">Profile</option>
+                <option value="study">Study</option>
+                <option value="files">School Files</option>
+                <option value="weekly">Analytics</option>
                 <option value="settings">Settings</option>
             </select>
         </div>
 
-        <div class="tab-nav">
-            <button class="tab-btn active" data-tab="home" onclick="setActiveTab('home')">Home</button>
-            <button class="tab-btn" data-tab="grades" onclick="setActiveTab('grades')">Grades</button>
+        <div class="tab-nav" aria-label="Primary navigation">
+            <div class="nav-section-label">Workspace</div>
+            <button class="tab-btn active" data-tab="home" onclick="setActiveTab('home')">Overview</button>
             <button class="tab-btn" data-tab="courses" onclick="setActiveTab('courses')">Courses</button>
-            <button class="tab-btn" data-tab="assignments" onclick="setActiveTab('assignments')">Assignments</button>
-            <button class="tab-btn" data-tab="goals" onclick="setActiveTab('goals')">Goals</button>
-            <button class="tab-btn" data-tab="predictor" onclick="setActiveTab('predictor')">Semester Predictor</button>
-            <button class="tab-btn" data-tab="weekly" onclick="setActiveTab('weekly')">Weekly Review</button>
-            <button class="tab-btn" data-tab="study" onclick="setActiveTab('study')">Study Center</button>
-            <button class="tab-btn" data-tab="flashcards" onclick="setActiveTab('flashcards')">Flashcards</button>
-            <button class="tab-btn" data-tab="files" onclick="setActiveTab('files')">School Files</button>
             <button class="tab-btn" data-tab="planner" onclick="setActiveTab('planner')">Planner</button>
-            <button class="tab-btn" data-tab="notes" onclick="setActiveTab('notes')">Notes</button>
-            <button class="tab-btn" data-tab="profile" onclick="setActiveTab('profile')">Profile</button>
+            <button class="tab-btn" data-tab="study" onclick="setActiveTab('study')">Study</button>
+            <button class="tab-btn" data-tab="files" onclick="setActiveTab('files')">Files</button>
+            <button class="tab-btn" data-tab="weekly" onclick="setActiveTab('weekly')">Analytics</button>
             <button class="tab-btn" data-tab="settings" onclick="setActiveTab('settings')">Settings</button>
         </div>
 
         <section id="homePanel" class="dashboard-panel active-panel">
             <div class="hub-shell">
                 <div class="hub-intro">
-                    <p class="eyebrow">Home Hub</p>
-                    <h3>Your study world, one tap away.</h3>
-                    <p>Jump into your grades, deadlines, resources, and notes with animated previews that keep the whole experience feeling alive.</p>
+                    <p class="eyebrow">Overview</p>
+                    <h3>What requires your attention right now?</h3>
+                    <p>Review today’s work, upcoming deadlines, course health, and recent activity.</p>
                 </div>
                 
                 <div class="countdown-widget">
@@ -179,6 +169,13 @@ Date Created: March 13, 2026
 
 
         <section id="gradesPanel" class="dashboard-panel">
+            <div class="workspace-context-nav" aria-label="Course workspace navigation">
+                <button class="context-btn" onclick="setActiveTab('courses')">Courses</button>
+                <button class="context-btn active" onclick="setActiveTab('grades')">Grades</button>
+                <button class="context-btn" onclick="setActiveTab('assignments')">Assessments</button>
+                <button class="context-btn" onclick="setActiveTab('notes')">Notes</button>
+                <button class="context-btn" onclick="setActiveTab('files')">Files</button>
+            </div>
             <div id="gpaSummary" class="gpa-card">
                 <label id="gpaLabel">Selected Period GPA</label>
                 <div id="totalGpa" class="gpa-val">0.00</div>
@@ -240,6 +237,13 @@ Date Created: March 13, 2026
         </section>
 
         <section id="coursesPanel" class="dashboard-panel">
+            <div class="workspace-context-nav" aria-label="Course workspace navigation">
+                <button class="context-btn active" onclick="setActiveTab('courses')">Overview</button>
+                <button class="context-btn" onclick="setActiveTab('grades')">Grades</button>
+                <button class="context-btn" onclick="setActiveTab('assignments')">Assessments</button>
+                <button class="context-btn" onclick="setActiveTab('files')">Files</button>
+                <button class="context-btn" onclick="setActiveTab('notes')">Notes</button>
+            </div>
             <div class="panel-card">
                 <div class="panel-heading">
                     <div>
@@ -264,6 +268,12 @@ Date Created: March 13, 2026
         </section>
 
         <section id="weeklyPanel" class="dashboard-panel">
+            <div class="workspace-context-nav" aria-label="Analytics navigation">
+                <button class="context-btn active" onclick="setActiveTab('weekly')">Progress</button>
+                <button class="context-btn" onclick="setActiveTab('predictor')">Grade analysis</button>
+                <button class="context-btn" onclick="setActiveTab('health')">Course health</button>
+                <button class="context-btn" onclick="setActiveTab('study')">Study history</button>
+            </div>
             <div class="panel-card">
                 <div class="panel-heading">
                     <div>
@@ -300,11 +310,17 @@ Date Created: March 13, 2026
         </section>
 
         <section id="studyPanel" class="dashboard-panel">
+            <div class="workspace-context-nav" aria-label="Study navigation">
+                <button class="context-btn active" onclick="setActiveTab('study')">Sessions</button>
+                <button class="context-btn" onclick="setActiveTab('focus')">Focus</button>
+                <button class="context-btn" onclick="setActiveTab('flashcards')">Flashcards</button>
+                <button class="context-btn" onclick="setActiveTab('weekly')">Study history</button>
+            </div>
             <div class="panel-card">
                 <div class="panel-heading">
                     <div>
-                        <p class="eyebrow">Study Center</p>
-                        <h3>Timer & Analytics</h3>
+                        <p class="eyebrow">Study</p>
+                        <h3>Sessions and practice</h3>
                     </div>
                 </div>
                 <div id="studyContainer" class="study-grid"></div>
@@ -353,8 +369,8 @@ Date Created: March 13, 2026
             <div class="panel-card">
                 <div class="panel-heading">
                     <div>
-                        <p class="eyebrow">Resources</p>
-                        <h3>School files and references</h3>
+                        <p class="eyebrow">Files</p>
+                        <h3>Documents and references</h3>
                     </div>
                 </div>
                 <div class="panel-form">
@@ -408,11 +424,15 @@ Date Created: March 13, 2026
         </section>
 
         <section id="plannerPanel" class="dashboard-panel">
+            <div class="workspace-context-nav" aria-label="Planner navigation">
+                <button class="context-btn active" onclick="setActiveTab('planner')">List and calendar</button>
+                <button class="context-btn" onclick="setActiveTab('assignments')">Assessments</button>
+            </div>
             <div class="panel-card full-width-card">
                 <div class="panel-heading calendar-header">
                     <div>
-                        <p class="eyebrow">Academic Calendar</p>
-                        <h3 id="calendarTitle">Calendar & Planner</h3>
+                        <p class="eyebrow">Planner</p>
+                        <h3 id="calendarTitle">Work queue and calendar</h3>
                     </div>
                     <div class="calendar-controls">
                         <div class="view-toggle">
@@ -467,10 +487,18 @@ Date Created: March 13, 2026
         </section>
 
         <section id="profilePanel" class="dashboard-panel">
+            <div class="workspace-context-nav" aria-label="Settings navigation">
+                <button class="context-btn active" onclick="setActiveTab('profile')">Profile</button>
+                <button class="context-btn" onclick="setActiveTab('settings')">Preferences</button>
+            </div>
             <div id="profileContainer"></div>
         </section>
 
         <section id="settingsPanel" class="dashboard-panel">
+            <div class="workspace-context-nav" aria-label="Settings navigation">
+                <button class="context-btn" onclick="setActiveTab('profile')">Profile</button>
+                <button class="context-btn active" onclick="setActiveTab('settings')">Preferences</button>
+            </div>
             <div class="panel-card">
                 <div class="panel-heading">
                     <div>
