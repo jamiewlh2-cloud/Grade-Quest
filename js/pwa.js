@@ -5,30 +5,12 @@
     const installButton = document.getElementById('pwaInstallButton');
     let waitingWorker = null;
     let hasControlledClient = Boolean(navigator.serviceWorker && navigator.serviceWorker.controller);
-    let connectionCheckInFlight = false;
 
     function updateConnectionStatus() {
         if (!offlineIndicator) return;
         const offline = navigator.onLine === false;
         offlineIndicator.hidden = !offline;
         document.body.classList.toggle('is-offline', offline);
-    }
-
-    async function confirmConnection() {
-        if (connectionCheckInFlight || navigator.onLine === false) {
-            updateConnectionStatus();
-            return;
-        }
-        connectionCheckInFlight = true;
-        try {
-            await fetch('./_headers', { method: 'HEAD', cache: 'no-store' });
-            updateConnectionStatus();
-        } catch {
-            if (offlineIndicator) offlineIndicator.hidden = false;
-            document.body.classList.add('is-offline');
-        } finally {
-            connectionCheckInFlight = false;
-        }
     }
 
     function showUpdatePrompt(worker) {
@@ -49,13 +31,17 @@
 
     function registerServiceWorker() {
         if (!('serviceWorker' in navigator)) return;
+        hideUpdatePrompt();
         navigator.serviceWorker.register('./sw.js', { scope: './' }).then(registration => {
-            if (registration.waiting) showUpdatePrompt(registration.waiting);
+            return registration.update().catch(() => undefined).then(() => {
+                if (registration.waiting) showUpdatePrompt(registration.waiting);
+            });
         }).catch(error => console.warn('GradeQuest service worker registration failed:', error));
 
         navigator.serviceWorker.addEventListener('controllerchange', () => {
             if (!hasControlledClient) {
                 hasControlledClient = true;
+                hideUpdatePrompt();
                 return;
             }
             hideUpdatePrompt();
@@ -65,7 +51,6 @@
 
     window.addEventListener('online', updateConnectionStatus);
     window.addEventListener('offline', updateConnectionStatus);
-    window.addEventListener('pageshow', confirmConnection);
     if (updateButton) updateButton.addEventListener('click', activateUpdate);
     window.addEventListener('appinstalled', () => {
         window.gradeQuestInstallEvent = null;
@@ -81,6 +66,5 @@
         });
     }
     updateConnectionStatus();
-    confirmConnection();
     registerServiceWorker();
 }());

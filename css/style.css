@@ -2275,19 +2275,19 @@ body.dark-mode .calendar-event-label.more {
 }
 
 body.dark-mode .grade-chat-card {
-    background: linear-gradient(180deg, rgba(15, 23, 42, 0.98), rgba(15, 23, 42, 0.92));
-    border-color: rgba(148, 163, 184, 0.18);
-    color: #e5e7eb;
+    background: var(--surface);
+    border-color: var(--border);
+    color: var(--text);
 }
 
 body.dark-mode .chat-message.bot {
-    background: #111827;
-    color: #e5e7eb;
-    border-color: rgba(148, 163, 184, 0.18);
+    background: var(--surface-secondary);
+    color: var(--text);
+    border-color: var(--border);
 }
 
 body.dark-mode .chat-message.user {
-    color: #ffffff;
+    color: var(--text);
 }
 
 body.dark-mode .course-card,
@@ -2299,13 +2299,13 @@ body.dark-mode .card-header .badge,
 body.dark-mode .course-card .notes-line,
 body.dark-mode .course-card .helper-text,
 body.dark-mode .course-card .unit-badge {
-    color: #e5e7eb;
+    color: var(--text);
 }
 
 body.dark-mode .course-card small,
 body.dark-mode .unit-badge,
 body.dark-mode .card-header .badge {
-    color: #9ca3af;
+    color: var(--text-muted);
 }
 
 body.dark-mode .course-card,
@@ -2317,7 +2317,7 @@ body.dark-mode .calendar-event-item,
 body.dark-mode .timeline-column,
 body.dark-mode .range-projection,
 body.dark-mode .stat {
-    border-color: rgba(255, 255, 255, 0.15);
+    border-color: var(--border);
 }
 
 /* Product workspace refresh: preserve existing feature hooks, change only presentation. */
@@ -2963,6 +2963,38 @@ body.dark-mode .panel-heading p,
 body.dark-mode .course-card strong,
 body.dark-mode .gpa-val {
     color: var(--text);
+}
+
+body.dark-mode .settings-health-grid div,
+body.dark-mode .achievement,
+body.dark-mode .notification-list > *,
+body.dark-mode .settings-actions,
+body.dark-mode .comparison-grid > *,
+body.dark-mode .weekly-summary-grid > *,
+body.dark-mode .course-prediction-card,
+body.dark-mode .outline-chip,
+body.dark-mode .status-tag.no-target {
+    background: var(--surface-secondary);
+    border-color: var(--border);
+    color: var(--text);
+}
+
+body.dark-mode .risk.low,
+body.dark-mode .status-tag.on-track {
+    background: rgba(47, 127, 134, 0.24);
+    color: #b9e4e0;
+}
+
+body.dark-mode .risk.medium,
+body.dark-mode .status-tag.slight-risk {
+    background: rgba(183, 121, 31, 0.24);
+    color: #f4d39a;
+}
+
+body.dark-mode .risk.high,
+body.dark-mode .status-tag.at-risk {
+    background: rgba(242, 139, 130, 0.2);
+    color: #ffc1bb;
 }
 
 @media (prefers-reduced-motion: reduce) {
