@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'gradequest-shell-v6';
+const CACHE_VERSION = 'gradequest-shell-v7';
 const RUNTIME_CACHE = 'gradequest-runtime-v1';
 const CDN_ASSETS = [
     'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js',
@@ -25,7 +25,15 @@ const APP_SHELL = [
 self.addEventListener('install', event => {
     event.waitUntil(
         caches.open(CACHE_VERSION)
-            .then(cache => cache.addAll(APP_SHELL))
+            .then(async cache => {
+                await Promise.all(APP_SHELL.map(async asset => {
+                    const requestUrl = new URL(asset, self.location.href);
+                    requestUrl.searchParams.set('cacheBust', CACHE_VERSION);
+                    const response = await fetch(requestUrl.href, { cache: 'no-store' });
+                    if (!response.ok) throw new Error(`Unable to cache ${asset}`);
+                    await cache.put(asset, response);
+                }));
+            })
             .then(() => self.skipWaiting())
     );
 });

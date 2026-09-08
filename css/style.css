@@ -197,16 +197,23 @@ button:disabled {
     color: #166534;
 }
 
-.auth-actions,
-.auth-link {
-    padding: 0;
-    border: 0;
-    background: transparent;
+.auth-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    margin-top: 16px;
+}
+
+.auth-action-button {
+    min-height: 44px;
+    width: 100%;
+    white-space: normal;
+}
+
+.auth-action-button.button-tertiary {
+    border-color: var(--border);
+    background: var(--surface-secondary);
     color: var(--primary);
-    cursor: pointer;
-    font: inherit;
-    font-size: 0.88rem;
-    text-decoration: underline;
 }
 
 .auth-user-label {
@@ -263,6 +270,10 @@ body.can-install .pwa-install-button {
 }
 
 @media (max-width: 520px) {
+    .auth-actions {
+        grid-template-columns: 1fr;
+    }
+
     .pwa-status,
     .pwa-prompt {
         left: 12px;
