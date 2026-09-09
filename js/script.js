@@ -10,6 +10,7 @@ let semesterGoals = [];
 let weeklyReviewHistory = [];
 let achievements = [];
 let currentTheme = localStorage.getItem('theme') || 'light';
+let courseOverviewMarkup = null;
 
 function hydrateUserData(uid) {
     GradeQuestStorage.setActiveUser(uid);
@@ -2854,10 +2855,10 @@ function renderCoursesDashboard() {
         const target = course.target || 0;
 
         return `
-            <button class="course-card panel-card" data-course="${name}" onclick="openCourseDashboard('${name.replace(/'/g, "\\'")}')">
+            <div class="course-card panel-card" data-course="${name}">
                 <div style="display:flex; justify-content: space-between; align-items:center; gap:12px;">
                     <div>
-                        <strong>${name}</strong>
+                        <button class="button-tertiary" onclick="openCourseDashboard('${name.replace(/'/g, "\\'")}')"><strong>${name}</strong></button>
                         <div style="color:var(--muted); font-size:0.9rem;">${gradeCount} assessments • ${linkedFiles} files • ${upcomingTasks} upcoming</div>
                     </div>
                     <div style="text-align:right;">
@@ -2865,7 +2866,11 @@ function renderCoursesDashboard() {
                         <div style="color:var(--muted); font-weight:700;">Target: ${target}%</div>
                     </div>
                 </div>
-            </button>
+                <div class="course-card-actions">
+                    <button class="button-tertiary" onclick="editCourse('${name.replace(/'/g, "\\'")}')">Edit</button>
+                    <button class="button-destructive" onclick="deleteClass('${name.replace(/'/g, "\\'")}')">Delete</button>
+                </div>
+            </div>
         `;
     }).join('');
 }
@@ -2912,6 +2917,8 @@ function openCourseDashboard(name) {
 
     const course = courses[name];
     if (!course) return;
+    const overviewCard = panel.querySelector('.panel-card');
+    if (overviewCard && !courseOverviewMarkup) courseOverviewMarkup = overviewCard.innerHTML;
 
     // compute stats
     let totalWeighted = 0, totalWeight = 0;
@@ -3011,29 +3018,12 @@ function openCourseDashboard(name) {
     `;
 }
 
-function renderCoursesOverviewShell() {
+function closeCourseDashboard() {
     const panel = document.getElementById('coursesPanel');
     if (!panel) return;
-    panel.innerHTML = `
-        <div class="workspace-context-nav" aria-label="Course workspace navigation">
-            <button class="context-nav-button button-tertiary active" onclick="setActiveTab('courses')">Overview</button>
-            <button class="context-nav-button button-tertiary" onclick="setActiveTab('grades')">Grades</button>
-            <button class="context-nav-button button-tertiary" onclick="setActiveTab('notes')">Notes</button>
-        </div>
-        <div class="panel-card">
-            <div class="panel-heading">
-                <div>
-                    <p class="eyebrow">Courses</p>
-                    <h3>Your Course Dashboard</h3>
-                </div>
-            </div>
-            <div id="coursesContainer" class="courses-grid"></div>
-        </div>
-    `;
-}
-
-function closeCourseDashboard() {
-    renderCoursesOverviewShell();
+    const overviewCard = panel.querySelector('.panel-card');
+    if (overviewCard && courseOverviewMarkup) overviewCard.innerHTML = courseOverviewMarkup;
+    courseOverviewMarkup = null;
     renderCoursesDashboard();
     setActiveTab('courses');
 }
