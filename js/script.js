@@ -2065,6 +2065,47 @@ function addClass() {
     }
 }
 
+async function editCourse(name) {
+    const course = courses[name];
+    if (!course) return;
+    const metadata = course.metadata || {};
+    const value = await showTextDialog({
+        title: 'Edit course',
+        message: 'Enter title, units, target, and details separated by pipes, for example: COMPENG 2DI4 | 3 | 80 | Algorithms and data structures',
+        value: `${metadata.courseName || name} | ${course.units || 3} | ${course.target ?? 80} | ${metadata.details || ''}`,
+        confirmLabel: 'Save course'
+    });
+    const parts = String(value || '').split('|').map(part => part.trim());
+    const title = parts[0];
+    const units = Number(parts[1]);
+    const target = Number(parts[2]);
+    if (!title || !Number.isFinite(units) || units <= 0 || !Number.isFinite(target) || target < 0 || target > 100) {
+        showToast('Enter a title, positive units, and a target from 0 to 100.', 'error');
+        return;
+    }
+    const nextName = title.toUpperCase();
+    if (nextName !== name && courses[nextName]) {
+        showToast('A course with that title already exists.', 'error');
+        return;
+    }
+    course.units = units;
+    course.target = target;
+    course.metadata = { ...metadata, courseName: title, details: parts.slice(3).join(' | ') };
+    if (nextName !== name) {
+        courses[nextName] = course;
+        delete courses[name];
+        plannerTasks = plannerTasks.map(task => String(task.course || '').toUpperCase() === name ? { ...task, course: nextName } : task);
+        studyFiles = studyFiles.map(file => String(file.course || '').toUpperCase() === name ? { ...file, course: nextName } : file);
+        if (courseOutlines[name]) {
+            courseOutlines[nextName] = courseOutlines[name];
+            delete courseOutlines[name];
+        }
+    }
+    saveStudyData();
+    save();
+    closeCourseDashboard();
+}
+
 function addGrade(courseName) {
     const score = parseFloat(document.getElementById(`score-${courseName}`).value);
     const manualWeight = parseFloat(document.getElementById(`weight-${courseName}`).value);
@@ -2241,14 +2282,22 @@ async function addStudyFile() {
 async function editStudyFile(id) {
     const file = studyFiles.find(item => item.id === id);
     if (!file) return;
-    const title = await showTextDialog({
+    const value = await showTextDialog({
         title: 'Edit resource',
-        message: 'Update the resource title.',
-        value: file.title,
+        message: 'Enter title, course, category, and notes separated by pipes.',
+        value: `${file.title} | ${file.course || ''} | ${file.category || 'Other'} | ${file.notes || ''}`,
         confirmLabel: 'Save resource'
     });
-    if (!title || !title.trim()) return;
-    file.title = title.trim();
+    const parts = String(value || '').split('|').map(part => part.trim());
+    const categories = ['Assignment', 'Lecture', 'Exam', 'Project', 'Reading', 'Other'];
+    if (!parts[0] || (parts[2] && !categories.includes(parts[2]))) {
+        showToast('Enter a title and a valid category.', 'error');
+        return;
+    }
+    file.title = parts[0];
+    file.course = parts[1] || 'General';
+    file.category = parts[2] || file.category || 'Other';
+    file.notes = parts.slice(3).join(' | ');
     saveStudyData();
     render();
 }
@@ -2517,10 +2566,34 @@ function renderPlanner() {
             </div>
             <div style="display:flex; gap:6px;">
                 <button class="button-tertiary" onclick="togglePlannerTask(${task.id})">✓</button>
+                <button class="button-tertiary" onclick="editPlannerTask(${task.id})">Edit</button>
                 <button class="button-destructive" onclick="deletePlannerTask(${task.id})">×</button>
             </div>
         </div>
     `).join('');
+}
+
+async function editPlannerTask(id) {
+    const task = plannerTasks.find(item => item.id === id);
+    if (!task) return;
+    const value = await showTextDialog({
+        title: 'Edit planner task',
+        message: 'Enter title, course, deadline, and priority separated by pipes.',
+        value: `${task.title} | ${task.course || ''} | ${task.deadline || ''} | ${task.priority || 'Medium'}`,
+        confirmLabel: 'Save task'
+    });
+    const parts = String(value || '').split('|').map(part => part.trim());
+    const priorities = ['High', 'Medium', 'Low'];
+    if (!parts[0] || (parts[3] && !priorities.includes(parts[3]))) {
+        showToast('Enter a title and a valid priority.', 'error');
+        return;
+    }
+    task.title = parts[0];
+    task.course = parts[1] || 'General';
+    task.deadline = parts[2] || '';
+    task.priority = parts[3] || task.priority || 'Medium';
+    saveStudyData();
+    render();
 }
 
 function renderNotes() {
@@ -2860,12 +2933,14 @@ function openCourseDashboard(name) {
                 <h3>${name}</h3>
             </div>
             <div style="display:flex; gap:8px; align-items:center;">
+                <button class="button-tertiary" onclick="editCourse('${name.replace(/'/g, "\\'")}')">Edit</button>
                 <button class="button-secondary" onclick="closeCourseDashboard()">← Back</button>
             </div>
         </div>
         <div class="course-detail-grid">
             <div class="panel-card">
                 <h3>Overview</h3>
+                ${course.metadata?.details ? `<p><strong>Details:</strong> ${course.metadata.details}</p>` : ''}
                 <p><strong>Current average:</strong> ${currentAvg ? currentAvg.toFixed(1) + '%' : '—'}</p>
                 <p><strong>Target:</strong> ${course.target || '—'}%</p>
                 <p><strong>Remaining weight:</strong> ${remainingWeight}%</p>
@@ -2936,9 +3011,31 @@ function openCourseDashboard(name) {
     `;
 }
 
+function renderCoursesOverviewShell() {
+    const panel = document.getElementById('coursesPanel');
+    if (!panel) return;
+    panel.innerHTML = `
+        <div class="workspace-context-nav" aria-label="Course workspace navigation">
+            <button class="context-nav-button button-tertiary active" onclick="setActiveTab('courses')">Overview</button>
+            <button class="context-nav-button button-tertiary" onclick="setActiveTab('grades')">Grades</button>
+            <button class="context-nav-button button-tertiary" onclick="setActiveTab('notes')">Notes</button>
+        </div>
+        <div class="panel-card">
+            <div class="panel-heading">
+                <div>
+                    <p class="eyebrow">Courses</p>
+                    <h3>Your Course Dashboard</h3>
+                </div>
+            </div>
+            <div id="coursesContainer" class="courses-grid"></div>
+        </div>
+    `;
+}
+
 function closeCourseDashboard() {
-    // re-render everything to restore original courses panel content
-    render();
+    renderCoursesOverviewShell();
+    renderCoursesDashboard();
+    setActiveTab('courses');
 }
 
 // --- Study Center implementation ---

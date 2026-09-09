@@ -195,6 +195,7 @@ function renderAssignmentsDashboard() {
                             <div class="assignment-actions">
                                 <input type="text" placeholder="Notes..." value="${escapeAttr(task.assignmentNotes || '')}" onchange="updateAssignmentField(${task.id}, 'assignmentNotes', this.value)">
                                 <button class="button-tertiary" onclick="togglePlannerTask(${task.id})">${task.done ? 'Undo' : 'Complete'}</button>
+                                <button class="button-tertiary" onclick="editPlannerTask(${task.id})">Edit</button>
                                 <button class="button-destructive" onclick="deletePlannerTask(${task.id})">Delete</button>
                                 ${task.course && courses[(task.course || '').toUpperCase()] ? `<button class="button-tertiary" onclick="openCourseDashboard('${escapeAttr((task.course || '').toUpperCase())}')">Course</button>` : ''}
                             </div>
