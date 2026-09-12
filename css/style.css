@@ -1288,6 +1288,41 @@ transition: width 0.4s ease;
     margin-top: 16px;
 }
 
+.study-history {
+    margin-top: 20px;
+}
+
+.study-history-list {
+    display: grid;
+    gap: 8px;
+}
+
+.study-history-item {
+    display: grid;
+    grid-template-columns: 72px 1fr auto;
+    gap: 10px;
+    align-items: center;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface-secondary);
+}
+
+.study-history-item small {
+    color: var(--muted);
+}
+
+@media (max-width: 600px) {
+    .study-history-item {
+        grid-template-columns: 1fr auto;
+    }
+
+    .study-history-item span {
+        grid-column: 1 / -1;
+        grid-row: 2;
+    }
+}
+
 .study-chart-grid {
     display: flex;
     gap: 16px;

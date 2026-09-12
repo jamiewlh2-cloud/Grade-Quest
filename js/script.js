@@ -3068,6 +3068,7 @@ function createDefaultStudyTimerState() {
             elapsedSeconds: 0,
             startTimestamp: null,
             endTimestamp: null,
+            sessionStartTimestamp: null,
             course: '',
             type: '',
             completionRecorded: false
@@ -3075,7 +3076,8 @@ function createDefaultStudyTimerState() {
         stopwatch: {
             status: 'idle',
             accumulatedSeconds: 0,
-            startTimestamp: null
+            startTimestamp: null,
+            sessionStartTimestamp: null
         }
     };
 }
@@ -3133,6 +3135,14 @@ function getStopwatchElapsedSeconds(now = Date.now()) {
     return Math.max(0, stopwatch.accumulatedSeconds || 0);
 }
 
+function getTimerElapsedSeconds(now = Date.now()) {
+    const timer = studyTimerState.timer;
+    if (timer.status === 'running' && timer.sessionStartTimestamp) {
+        return Math.max(0, Math.min(timer.durationSeconds, Math.floor((now - timer.sessionStartTimestamp) / 1000)));
+    }
+    return Math.max(0, timer.elapsedSeconds || 0);
+}
+
 function reconcileStudyTimerState() {
     const timer = studyTimerState.timer;
     if (timer.status !== 'running') {
@@ -3148,32 +3158,49 @@ function reconcileStudyTimerState() {
         return;
     }
 
+    const scheduledEndTimestamp = timer.endTimestamp || Date.now();
+    const sessionStartTimestamp = timer.sessionStartTimestamp || scheduledEndTimestamp - (timer.durationSeconds * 1000);
     timer.remainingSeconds = 0;
     timer.elapsedSeconds = timer.durationSeconds;
     timer.status = 'completed';
     timer.startTimestamp = null;
     timer.endTimestamp = null;
+    timer.sessionStartTimestamp = null;
     syncTimerGlobals();
     if (!timer.completionRecorded) {
         timer.completionRecorded = true;
         saveStudyTimerState();
-        recordCompletedTimer(timer);
+        recordStudySession({
+            startTimestamp: sessionStartTimestamp,
+            endTimestamp: scheduledEndTimestamp,
+            durationSeconds: timer.durationSeconds,
+            course: timer.course,
+            type: timer.type,
+            timerType: 'countdown'
+        });
         showToast('Study session complete.', 'success');
     } else {
         saveStudyTimerState();
     }
 }
 
-function recordCompletedTimer(timer) {
+function recordStudySession({ startTimestamp, endTimestamp, durationSeconds, course, type, timerType }) {
     const session = {
         id: Date.now(),
-        date: new Date().toISOString().split('T')[0],
-        durationMinutes: Math.max(1, Math.round(timer.elapsedSeconds / 60)),
-        course: timer.course || 'General',
-        type: timer.type || 'General'
+        startTimestamp: new Date(startTimestamp).toISOString(),
+        endTimestamp: new Date(endTimestamp).toISOString(),
+        durationSeconds: Math.max(0, Math.round(durationSeconds || 0)),
+        durationMinutes: Math.max(1, Math.round((durationSeconds || 0) / 60)),
+        date: new Date(endTimestamp).toISOString().split('T')[0],
+        timerType: timerType || 'countdown',
+        course: course || 'General',
+        type: type || 'General'
     };
     studySessions.unshift(session);
     saveStudySessions();
+    renderStudyAnalytics();
+    renderStudyHistory();
+    if (typeof renderAdvancedStudyAnalytics === 'function') renderAdvancedStudyAnalytics();
 }
 
 function ensureStudyClock() {
@@ -3239,6 +3266,7 @@ function renderStudyCenter() {
                         <button class="button-primary" onclick="startTimer()">Start</button>
                         <button class="button-primary" onclick="pauseTimer()">Pause</button>
                         <button class="button-primary" onclick="resumeTimer()">Resume</button>
+                        <button class="button-primary" onclick="completeTimerSession()">Done</button>
                         <button class="button-secondary" onclick="resetTimer()">Reset</button>
                     </div>
                 </div>
@@ -3250,6 +3278,7 @@ function renderStudyCenter() {
                     <button class="button-primary" onclick="startStopwatch()">Start</button>
                     <button class="button-primary" onclick="pauseStopwatch()">Pause</button>
                     <button class="button-primary" onclick="resumeStopwatch()">Resume</button>
+                    <button class="button-primary" onclick="stopStopwatch()">Stop &amp; Save</button>
                     <button class="button-secondary" onclick="resetStopwatch()">Reset</button>
                 </div>
             </div>`}
@@ -3259,12 +3288,14 @@ function renderStudyCenter() {
             <div id="studySummary" class="study-summary-grid"></div>
             <div id="studyCharts" class="study-charts"></div>
             <div id="studyInsights" class="study-insights"></div>
+            <div id="studyHistory" class="study-history"></div>
         </div>
     `;
 
     updateTimerDisplay();
     updateStopwatchDisplay();
     renderStudyAnalytics();
+    renderStudyHistory();
 }
 
 function switchStudyMode(mode) {
@@ -3316,6 +3347,7 @@ function startTimer() {
     studyTimerState.timer.status = 'running';
     studyTimerState.timer.startTimestamp = now;
     studyTimerState.timer.endTimestamp = now + timerModeSeconds * 1000;
+    studyTimerState.timer.sessionStartTimestamp = now;
     studyTimerState.timer.remainingSeconds = timerModeSeconds;
     studyTimerState.timer.elapsedSeconds = 0;
     studyTimerState.timer.completionRecorded = false;
@@ -3359,9 +3391,40 @@ function resetTimer() {
     timer.elapsedSeconds = 0;
     timer.startTimestamp = null;
     timer.endTimestamp = null;
+    timer.sessionStartTimestamp = null;
     timer.completionRecorded = false;
     syncTimerGlobals();
     saveStudyTimerState();
+    updateTimerDisplay();
+}
+
+function completeTimerSession() {
+    const timer = studyTimerState.timer;
+    if (timer.status === 'completed' || timer.status === 'idle') return;
+
+    const endTimestamp = Date.now();
+    if (timer.status === 'running') {
+        timer.elapsedSeconds = getTimerElapsedSeconds(endTimestamp);
+        timer.remainingSeconds = Math.max(0, timer.durationSeconds - timer.elapsedSeconds);
+    }
+
+    const startTimestamp = timer.sessionStartTimestamp || endTimestamp - (timer.elapsedSeconds * 1000);
+    timer.status = 'completed';
+    timer.completionRecorded = true;
+    timer.startTimestamp = null;
+    timer.endTimestamp = null;
+    timer.sessionStartTimestamp = null;
+    saveStudyTimerState();
+    recordStudySession({
+        startTimestamp,
+        endTimestamp,
+        durationSeconds: timer.elapsedSeconds,
+        course: timer.course,
+        type: timer.type,
+        timerType: 'countdown'
+    });
+    syncTimerGlobals();
+    showToast('Study session saved.', 'success');
     updateTimerDisplay();
 }
 
@@ -3376,6 +3439,7 @@ function startStopwatch() {
     stopwatch.status = 'running';
     stopwatch.accumulatedSeconds = 0;
     stopwatch.startTimestamp = Date.now();
+    stopwatch.sessionStartTimestamp = stopwatch.startTimestamp;
     saveStudyTimerState();
     ensureStudyClock();
     updateStopwatchDisplay();
@@ -3401,10 +3465,46 @@ function resumeStopwatch() {
     updateStopwatchDisplay();
 }
 
+function stopStopwatch() {
+    const stopwatch = studyTimerState.stopwatch;
+    if (stopwatch.status !== 'running' && stopwatch.status !== 'paused') return;
+
+    const endTimestamp = Date.now();
+    const durationSeconds = getStopwatchElapsedSeconds(endTimestamp);
+    const startTimestamp = stopwatch.sessionStartTimestamp || endTimestamp - (durationSeconds * 1000);
+    studyTimerState.stopwatch = { status: 'idle', accumulatedSeconds: 0, startTimestamp: null, sessionStartTimestamp: null };
+    saveStudyTimerState();
+    recordStudySession({
+        startTimestamp,
+        endTimestamp,
+        durationSeconds,
+        timerType: 'stopwatch',
+        type: 'Stopwatch'
+    });
+    showToast('Stopwatch session saved.', 'success');
+    updateStopwatchDisplay();
+}
+
 function resetStopwatch() {
-    studyTimerState.stopwatch = { status: 'idle', accumulatedSeconds: 0, startTimestamp: null };
+    studyTimerState.stopwatch = { status: 'idle', accumulatedSeconds: 0, startTimestamp: null, sessionStartTimestamp: null };
     saveStudyTimerState();
     updateStopwatchDisplay();
+}
+
+function renderStudyHistory() {
+    const historyEl = document.getElementById('studyHistory');
+    if (!historyEl) return;
+    const recentSessions = (studySessions || []).slice(0, 8);
+    historyEl.innerHTML = `
+        <h4>Study History</h4>
+        ${recentSessions.length ? `<div class="study-history-list">${recentSessions.map(session => `
+            <div class="study-history-item">
+                <strong>${session.durationMinutes || 0} min</strong>
+                <span>${session.course || 'General'} • ${session.timerType || session.type || 'countdown'}</span>
+                <small>${session.date || 'Unknown date'}</small>
+            </div>
+        `).join('')}</div>` : '<p class="empty-state">No completed study sessions yet.</p>'}
+    `;
 }
 
 function refreshStudyTiming() {

@@ -23,6 +23,7 @@ let focusModeRemaining = 0;
 let focusModeRunning = false;
 let focusModeTotal = 25 * 60;
 let focusModeTaskId = null;
+let focusModeStartTimestamp = null;
 
 const DEFAULT_WIDGET_ORDER = [
     'advisor', 'planner', 'grader', 'assignments', 'files', 'notes', 'study',
@@ -881,6 +882,7 @@ function startFocusMode() {
     const taskSelect = document.getElementById('focusModeTask');
     focusModeTaskId = taskSelect ? parseInt(taskSelect.value, 10) || null : null;
     focusModeRunning = true;
+    focusModeStartTimestamp = Date.now();
     document.body.classList.add('focus-mode-active');
     focusModeInterval = setInterval(() => {
         focusModeRemaining -= 1;
@@ -923,14 +925,15 @@ function completeFocusMode() {
     const course = courseEl?.value || 'General';
     const durationMinutes = Math.max(1, Math.round(elapsed / 60));
 
-    studySessions.unshift({
-        id: Date.now(),
-        date: getTodayDateStr(),
-        durationMinutes,
+    recordStudySession({
+        startTimestamp: focusModeStartTimestamp || Date.now() - (elapsed * 1000),
+        endTimestamp: Date.now(),
+        durationSeconds: elapsed,
         course,
-        type: 'Focus Mode'
+        type: 'Focus Mode',
+        timerType: 'focus'
     });
-    saveStudySessions();
+    focusModeStartTimestamp = null;
 
     if (focusModeTaskId) {
         setAssignmentStatus(focusModeTaskId, 'in_progress');
