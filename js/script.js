@@ -2946,6 +2946,7 @@ function openCourseDashboard(name) {
             </div>
             <div style="display:flex; gap:8px; align-items:center;">
                 <button class="button-tertiary" onclick="editCourse('${name.replace(/'/g, "\\'")}')">Edit</button>
+                <button class="button-destructive" onclick="deleteClass('${name.replace(/'/g, "\\'")}')">Delete Course</button>
                 <button class="button-secondary" onclick="closeCourseDashboard()">← Back</button>
             </div>
         </div>
