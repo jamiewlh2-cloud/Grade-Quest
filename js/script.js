@@ -2070,16 +2070,21 @@ async function editCourse(name) {
     const course = courses[name];
     if (!course) return;
     const metadata = course.metadata || {};
-    const value = await showTextDialog({
+    const values = await showFormDialog({
         title: 'Edit course',
-        message: 'Enter title, units, target, and details separated by pipes, for example: COMPENG 2DI4 | 3 | 80 | Algorithms and data structures',
-        value: `${metadata.courseName || name} | ${course.units || 3} | ${course.target ?? 80} | ${metadata.details || ''}`,
+        message: 'Update the course information below.',
+        fields: [
+            { name: 'courseName', label: 'Course Name', value: metadata.courseName || name },
+            { name: 'units', label: 'Units', type: 'number', min: '0.1', step: '0.1', value: course.units || 3 },
+            { name: 'target', label: 'Target Grade', type: 'number', min: '0', max: '100', step: '0.1', value: course.target ?? 80 },
+            { name: 'details', label: 'Course Details', type: 'textarea', value: metadata.details || '' }
+        ],
         confirmLabel: 'Save course'
     });
-    const parts = String(value || '').split('|').map(part => part.trim());
-    const title = parts[0];
-    const units = Number(parts[1]);
-    const target = Number(parts[2]);
+    if (!values) return;
+    const title = String(values.courseName || '').trim();
+    const units = Number(values.units);
+    const target = Number(values.target);
     if (!title || !Number.isFinite(units) || units <= 0 || !Number.isFinite(target) || target < 0 || target > 100) {
         showToast('Enter a title, positive units, and a target from 0 to 100.', 'error');
         return;
@@ -2091,7 +2096,7 @@ async function editCourse(name) {
     }
     course.units = units;
     course.target = target;
-    course.metadata = { ...metadata, courseName: title, details: parts.slice(3).join(' | ') };
+    course.metadata = { ...metadata, courseName: title, details: String(values.details || '').trim() };
     if (nextName !== name) {
         courses[nextName] = course;
         delete courses[name];
@@ -2163,7 +2168,7 @@ async function editGrade(courseName, idx) {
 async function deleteClass(name) {
     const confirmed = await showConfirmDialog({
         title: `Delete ${name}?`,
-        message: 'This removes the course, grades, tasks, files, and outline from all synced devices.',
+        message: 'This permanently deletes the course, its grades, planner references, course outline, and file associations from all synced devices. Notes are preserved because they are not course-linked.',
         confirmLabel: 'Delete course',
         danger: true
     });
@@ -3013,6 +3018,15 @@ function openCourseDashboard(name) {
                 <p><strong>Total assessments completed:</strong> ${totalAssessments}</p>
                 <p><strong>Total assessments remaining:</strong> ${assessmentsRemaining > 0 ? assessmentsRemaining : 0}</p>
                 <p><strong>Estimated final grade:</strong> ${estimatedFinal}</p>
+            </div>
+
+            <div class="panel-card course-settings-card">
+                <h3>Course Settings</h3>
+                <p class="notes-line">Manage this course and its linked records.</p>
+                <div class="course-settings-actions">
+                    <button class="button-secondary" onclick="editCourse('${name.replace(/'/g, "\\'")}')">Edit Course</button>
+                    <button class="button-destructive" onclick="deleteClass('${name.replace(/'/g, "\\'")}')">Delete Course</button>
+                </div>
             </div>
         </div>
     `;
