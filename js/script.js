@@ -2519,7 +2519,7 @@ function renderFiles() {
             </div>
             <div>
                 <button class="resource-action" onclick="editStudyFile(${file.id})">Edit</button>
-                <button class="resource-action" onclick="deleteStudyFile(${file.id})">×</button>
+                <button class="button-destructive" onclick="deleteStudyFile(${file.id})">Delete</button>
             </div>
         </div>
     `).join('');
@@ -2573,7 +2573,7 @@ function renderPlanner() {
             <div style="display:flex; gap:6px;">
                 <button class="button-tertiary" onclick="togglePlannerTask(${task.id})">✓</button>
                 <button class="button-tertiary" onclick="editPlannerTask(${task.id})">Edit</button>
-                <button class="button-destructive" onclick="deletePlannerTask(${task.id})">×</button>
+                <button class="button-destructive" onclick="deletePlannerTask(${task.id})">Delete</button>
             </div>
         </div>
     `).join('');
@@ -2786,7 +2786,7 @@ function render() {
                                 <span><strong>${g.score}%</strong> <small>(${g.weight}% weight)</small></span>
                                     <span>
                                         <button class="mini-del" onclick="editGrade('${name}', ${idx})">Edit</button>
-                                        <button class="mini-del" onclick="deleteGrade('${name}', ${idx})">×</button>
+                                        <button class="button-destructive" onclick="deleteGrade('${name}', ${idx})">Delete</button>
                                     </span>
                             </div>
                         `).join('') || '<p style="font-size:0.8rem; color:#94a3b8">No grades added yet.</p>'}
@@ -3022,7 +3022,12 @@ function openCourseDashboard(name) {
 
             <div class="panel-card course-settings-card">
                 <h3>Course Settings</h3>
-                <p class="notes-line">Manage this course and its linked records.</p>
+                <div class="course-settings-details">
+                    <div><span>Course Name</span><strong>${course.metadata?.courseName || name}</strong></div>
+                    <div><span>Units</span><strong>${course.units || 3}</strong></div>
+                    <div><span>Target Grade</span><strong>${course.target ?? 80}%</strong></div>
+                    <div><span>Details</span><strong>${course.metadata?.details || 'No details added.'}</strong></div>
+                </div>
                 <div class="course-settings-actions">
                     <button class="button-secondary" onclick="editCourse('${name.replace(/'/g, "\\'")}')">Edit Course</button>
                     <button class="button-destructive" onclick="deleteClass('${name.replace(/'/g, "\\'")}')">Delete Course</button>

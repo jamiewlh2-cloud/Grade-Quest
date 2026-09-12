@@ -3071,6 +3071,113 @@ body.dark-mode textarea::placeholder {
     color: var(--muted);
 }
 
+.feedback-form-dialog {
+    max-height: min(720px, calc(100vh - 40px));
+    overflow-y: auto;
+}
+
+.feedback-form-fields {
+    display: grid;
+    gap: 14px;
+    margin-bottom: 20px;
+}
+
+.feedback-form-fields label {
+    display: grid;
+    gap: 6px;
+    color: var(--text);
+    font-weight: 600;
+}
+
+.course-settings-card {
+    grid-column: 1 / -1;
+    border-top: 3px solid var(--accent);
+}
+
+.course-settings-details {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+    margin: 16px 0;
+}
+
+.course-settings-details div {
+    display: grid;
+    gap: 4px;
+    padding: 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-control);
+    background: var(--surface);
+}
+
+.course-settings-details div:last-child {
+    grid-column: 1 / -1;
+}
+
+.course-settings-details span {
+    color: var(--muted);
+    font-size: var(--text-sm);
+}
+
+.course-settings-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+@media (max-width: 640px) {
+    .course-settings-details { grid-template-columns: 1fr; }
+    .course-settings-details div:last-child { grid-column: auto; }
+}
+
+body.dark-mode #coursesPanel .panel-card,
+body.dark-mode #filesPanel .panel-card,
+body.dark-mode #weeklyPanel .panel-card,
+body.dark-mode #settingsPanel .panel-card,
+body.dark-mode #coursesPanel .course-card,
+body.dark-mode #filesPanel .resource-item {
+    background: #1d2a34;
+    border-color: #4b626f;
+}
+
+body.dark-mode #coursesPanel .course-settings-card,
+body.dark-mode #coursesPanel .course-settings-details div {
+    background: #243540;
+    border-color: #5a7481;
+}
+
+body.dark-mode #coursesPanel .course-settings-details span,
+body.dark-mode #filesPanel .resource-item p,
+body.dark-mode #weeklyPanel .notes-line,
+body.dark-mode #settingsPanel .notes-line {
+    color: #c2d0d6;
+}
+
+body.dark-mode #coursesPanel .button-tertiary,
+body.dark-mode #filesPanel .resource-action,
+body.dark-mode #weeklyPanel button,
+body.dark-mode #settingsPanel button,
+body.dark-mode #coursesPanel input,
+body.dark-mode #coursesPanel select,
+body.dark-mode #filesPanel input,
+body.dark-mode #filesPanel select,
+body.dark-mode #filesPanel textarea,
+body.dark-mode #settingsPanel input,
+body.dark-mode #settingsPanel select {
+    border-color: #5a7481;
+    color: #edf3f5;
+}
+
+body.dark-mode .feedback-dialog {
+    background: #1d2a34;
+    border-color: #5a7481;
+    color: #edf3f5;
+}
+
+body.dark-mode .feedback-form-fields label {
+    color: #edf3f5;
+}
+
 .workspace-context-nav {
     margin-bottom: 20px;
 }

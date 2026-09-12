@@ -1076,7 +1076,7 @@ function renderFlashcardsDashboard() {
                     </div>
                     <div>
                         <button class="button-secondary" onclick="editFlashcard(${c.id})">Edit</button>
-                        <button class="button-destructive" onclick="deleteFlashcard(${c.id})">×</button>
+                        <button class="button-destructive" onclick="deleteFlashcard(${c.id})">Delete</button>
                     </div>
                 </div>
             `).join('') : ''}
