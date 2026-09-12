@@ -6,6 +6,7 @@
         'studyNotes',
         'courseOutlines',
         'studySessions',
+        'studyTimerState',
         'semesterGoals',
         'weeklyReviewHistory',
         'achievements',

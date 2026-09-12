@@ -23,6 +23,7 @@ function hydrateUserData(uid) {
     semesterGoals = GradeQuestStorage.getJson('semesterGoals', []);
     weeklyReviewHistory = GradeQuestStorage.getJson('weeklyReviewHistory', []);
     achievements = GradeQuestStorage.getJson('achievements', []);
+    loadStudyTimerState();
     if (typeof hydrateProductivityData === 'function') hydrateProductivityData(uid);
 }
 
@@ -56,6 +57,7 @@ function clearUserDataState() {
     semesterGoals = [];
     weeklyReviewHistory = [];
     achievements = [];
+    resetStudyTimerState();
     if (typeof clearProductivityDataState === 'function') clearProductivityDataState();
     if (typeof render === 'function') render();
 }
@@ -135,7 +137,7 @@ function saveStudySessions() {
 
 function stopGradeQuestStudyTimer() {
     clearInterval(timerInterval);
-    timerRunning = false;
+    timerInterval = null;
 }
 
 window.stopGradeQuestStudyTimer = stopGradeQuestStudyTimer;
@@ -3054,21 +3056,166 @@ let timerRemaining = 0; // seconds
 let timerElapsed = 0; // seconds
 let timerRunning = false;
 let timerModeSeconds = 0;
+let studyTimerState = createDefaultStudyTimerState();
+
+function createDefaultStudyTimerState() {
+    return {
+        activeMode: 'timer',
+        timer: {
+            status: 'idle',
+            durationSeconds: 0,
+            remainingSeconds: 0,
+            elapsedSeconds: 0,
+            startTimestamp: null,
+            endTimestamp: null,
+            course: '',
+            type: '',
+            completionRecorded: false
+        },
+        stopwatch: {
+            status: 'idle',
+            accumulatedSeconds: 0,
+            startTimestamp: null
+        }
+    };
+}
+
+function loadStudyTimerState() {
+    const saved = GradeQuestStorage.getJson('studyTimerState', null);
+    const defaults = createDefaultStudyTimerState();
+    studyTimerState = {
+        ...defaults,
+        ...(saved || {}),
+        timer: { ...defaults.timer, ...((saved && saved.timer) || {}) },
+        stopwatch: { ...defaults.stopwatch, ...((saved && saved.stopwatch) || {}) }
+    };
+    timerModeSeconds = studyTimerState.timer.durationSeconds || 0;
+    syncTimerGlobals();
+}
+
+function resetStudyTimerState() {
+    studyTimerState = createDefaultStudyTimerState();
+    timerModeSeconds = 0;
+    timerRemaining = 0;
+    timerElapsed = 0;
+    timerRunning = false;
+    clearInterval(timerInterval);
+    timerInterval = null;
+}
+
+function saveStudyTimerState() {
+    if (GradeQuestStorage.getActiveUser()) {
+        GradeQuestStorage.setJson('studyTimerState', studyTimerState);
+    }
+}
+
+function syncTimerGlobals() {
+    const timer = studyTimerState.timer;
+    timerModeSeconds = timer.durationSeconds || 0;
+    timerRemaining = getTimerRemainingSeconds();
+    timerElapsed = Math.max(0, timer.durationSeconds - timerRemaining);
+    timerRunning = timer.status === 'running';
+}
+
+function getTimerRemainingSeconds(now = Date.now()) {
+    const timer = studyTimerState.timer;
+    if (timer.status === 'running' && timer.endTimestamp) {
+        return Math.max(0, Math.ceil((timer.endTimestamp - now) / 1000));
+    }
+    return Math.max(0, timer.remainingSeconds || 0);
+}
+
+function getStopwatchElapsedSeconds(now = Date.now()) {
+    const stopwatch = studyTimerState.stopwatch;
+    if (stopwatch.status === 'running' && stopwatch.startTimestamp) {
+        return Math.max(0, stopwatch.accumulatedSeconds + Math.floor((now - stopwatch.startTimestamp) / 1000));
+    }
+    return Math.max(0, stopwatch.accumulatedSeconds || 0);
+}
+
+function reconcileStudyTimerState() {
+    const timer = studyTimerState.timer;
+    if (timer.status !== 'running') {
+        syncTimerGlobals();
+        return;
+    }
+
+    const remaining = getTimerRemainingSeconds();
+    if (remaining > 0) {
+        timer.remainingSeconds = remaining;
+        timer.elapsedSeconds = Math.max(0, timer.durationSeconds - remaining);
+        syncTimerGlobals();
+        return;
+    }
+
+    timer.remainingSeconds = 0;
+    timer.elapsedSeconds = timer.durationSeconds;
+    timer.status = 'completed';
+    timer.startTimestamp = null;
+    timer.endTimestamp = null;
+    syncTimerGlobals();
+    if (!timer.completionRecorded) {
+        timer.completionRecorded = true;
+        saveStudyTimerState();
+        recordCompletedTimer(timer);
+        showToast('Study session complete.', 'success');
+    } else {
+        saveStudyTimerState();
+    }
+}
+
+function recordCompletedTimer(timer) {
+    const session = {
+        id: Date.now(),
+        date: new Date().toISOString().split('T')[0],
+        durationMinutes: Math.max(1, Math.round(timer.elapsedSeconds / 60)),
+        course: timer.course || 'General',
+        type: timer.type || 'General'
+    };
+    studySessions.unshift(session);
+    saveStudySessions();
+}
+
+function ensureStudyClock() {
+    if (timerInterval) return;
+    timerInterval = setInterval(() => {
+        reconcileStudyTimerState();
+        updateTimerDisplay();
+        updateStopwatchDisplay();
+    }, 1000);
+}
+
+function formatStopwatchTime(seconds) {
+    const hours = String(Math.floor(seconds / 3600)).padStart(2, '0');
+    const minutes = String(Math.floor((seconds % 3600) / 60)).padStart(2, '0');
+    const remainingSeconds = String(seconds % 60).padStart(2, '0');
+    return `${hours}:${minutes}:${remainingSeconds}`;
+}
 
 function renderStudyCenter() {
     const container = document.getElementById('studyContainer');
     if (!container) return;
 
+    reconcileStudyTimerState();
+    ensureStudyClock();
+
     const courseOptions = Object.keys(courses).sort();
+    const timer = studyTimerState.timer;
+    const isTimerMode = studyTimerState.activeMode === 'timer';
 
     container.innerHTML = `
         <div class="panel-card study-timer-card">
+            <div class="study-mode-row">
+                <button class="view-toggle-btn ${isTimerMode ? 'active' : ''}" onclick="switchStudyMode('timer')">Timer</button>
+                <button class="view-toggle-btn ${!isTimerMode ? 'active' : ''}" onclick="switchStudyMode('stopwatch')">Stopwatch</button>
+            </div>
+            ${isTimerMode ? `
             <h3>Study Timer</h3>
             <div class="panel-form">
                 <label>Course</label>
-                <select id="timerCourse">
+                <select id="timerCourse" onchange="updateTimerMetadata()">
                     <option value="">Select course</option>
-                    ${courseOptions.map(c => `<option value="${c}">${c}</option>`).join('')}
+                    ${courseOptions.map(c => `<option value="${c}" ${timer.course === c ? 'selected' : ''}>${c}</option>`).join('')}
                 </select>
                 <label>Mode</label>
                 <div class="study-mode-row">
@@ -3078,16 +3225,16 @@ function renderStudyCenter() {
                     <button class="view-toggle-btn" onclick="applyCustomMode()">Set</button>
                 </div>
                 <label>Study type (optional)</label>
-                <select id="timerType">
-                    <option value="">General</option>
-                    <option>Reading</option>
-                    <option>Flashcards</option>
-                    <option>Assignment</option>
-                    <option>Review</option>
-                    <option>Practice Problems</option>
+                <select id="timerType" onchange="updateTimerMetadata()">
+                    <option value="" ${!timer.type ? 'selected' : ''}>General</option>
+                    <option ${timer.type === 'Reading' ? 'selected' : ''}>Reading</option>
+                    <option ${timer.type === 'Flashcards' ? 'selected' : ''}>Flashcards</option>
+                    <option ${timer.type === 'Assignment' ? 'selected' : ''}>Assignment</option>
+                    <option ${timer.type === 'Review' ? 'selected' : ''}>Review</option>
+                    <option ${timer.type === 'Practice Problems' ? 'selected' : ''}>Practice Problems</option>
                 </select>
                 <div class="study-timer-row">
-                    <div class="study-timer-display"><span id="timerDisplay">00:00</span></div>
+                    <div class="study-timer-display"><span id="timerDisplay">00:00</span><small id="timerStatus"></small></div>
                     <div class="study-timer-actions">
                         <button class="button-primary" onclick="startTimer()">Start</button>
                         <button class="button-primary" onclick="pauseTimer()">Pause</button>
@@ -3095,7 +3242,17 @@ function renderStudyCenter() {
                         <button class="button-secondary" onclick="resetTimer()">Reset</button>
                     </div>
                 </div>
-            </div>
+            </div>` : `
+            <h3>Stopwatch</h3>
+            <div class="study-timer-row">
+                <div class="study-timer-display"><span id="stopwatchDisplay">00:00:00</span></div>
+                <div class="study-timer-actions">
+                    <button class="button-primary" onclick="startStopwatch()">Start</button>
+                    <button class="button-primary" onclick="pauseStopwatch()">Pause</button>
+                    <button class="button-primary" onclick="resumeStopwatch()">Resume</button>
+                    <button class="button-secondary" onclick="resetStopwatch()">Reset</button>
+                </div>
+            </div>`}
         </div>
         <div class="panel-card study-analytics-card">
             <h3>Study Analytics</h3>
@@ -3106,13 +3263,29 @@ function renderStudyCenter() {
     `;
 
     updateTimerDisplay();
+    updateStopwatchDisplay();
     renderStudyAnalytics();
 }
 
+function switchStudyMode(mode) {
+    studyTimerState.activeMode = mode === 'stopwatch' ? 'stopwatch' : 'timer';
+    saveStudyTimerState();
+    renderStudyCenter();
+}
+
+function updateTimerMetadata() {
+    const course = document.getElementById('timerCourse');
+    const type = document.getElementById('timerType');
+    if (course) studyTimerState.timer.course = course.value;
+    if (type) studyTimerState.timer.type = type.value;
+    saveStudyTimerState();
+}
+
 function setTimerMode(minutes) {
-    timerModeSeconds = minutes * 60;
-    timerRemaining = timerModeSeconds;
-    timerElapsed = 0;
+    const durationSeconds = minutes * 60;
+    studyTimerState.timer = { ...createDefaultStudyTimerState().timer, durationSeconds, remainingSeconds: durationSeconds };
+    syncTimerGlobals();
+    saveStudyTimerState();
     updateTimerDisplay();
 }
 
@@ -3124,10 +3297,13 @@ function applyCustomMode() {
 function updateTimerDisplay() {
     const el = document.getElementById('timerDisplay');
     if (!el) return;
-    const s = timerRemaining;
+    reconcileStudyTimerState();
+    const s = getTimerRemainingSeconds();
     const mm = String(Math.floor(s/60)).padStart(2,'0');
     const ss = String(s%60).padStart(2,'0');
     el.textContent = `${mm}:${ss}`;
+    const status = document.getElementById('timerStatus');
+    if (status) status.textContent = studyTimerState.timer.status === 'completed' ? 'Complete' : '';
 }
 
 function startTimer() {
@@ -3135,50 +3311,111 @@ function startTimer() {
     if (!course) { showToast('Please select a course before starting.', 'error'); return; }
     if (!timerModeSeconds) { showToast('Please pick a mode (25/50) or set a custom duration.', 'error'); return; }
     if (timerRunning) return;
-    timerRemaining = timerModeSeconds;
-    timerElapsed = 0;
-    timerRunning = true;
-    timerInterval = setInterval(() => {
-        timerRemaining -= 1; timerElapsed += 1; updateTimerDisplay();
-        if (timerRemaining <= 0) { clearInterval(timerInterval); timerRunning = false; onTimerComplete(); }
-    }, 1000);
+    updateTimerMetadata();
+    const now = Date.now();
+    studyTimerState.timer.status = 'running';
+    studyTimerState.timer.startTimestamp = now;
+    studyTimerState.timer.endTimestamp = now + timerModeSeconds * 1000;
+    studyTimerState.timer.remainingSeconds = timerModeSeconds;
+    studyTimerState.timer.elapsedSeconds = 0;
+    studyTimerState.timer.completionRecorded = false;
+    syncTimerGlobals();
+    saveStudyTimerState();
+    ensureStudyClock();
+    updateTimerDisplay();
 }
 
 function pauseTimer() {
     if (!timerRunning) return;
-    clearInterval(timerInterval); timerRunning = false;
+    reconcileStudyTimerState();
+    const timer = studyTimerState.timer;
+    timer.remainingSeconds = getTimerRemainingSeconds();
+    timer.elapsedSeconds = Math.max(0, timer.durationSeconds - timer.remainingSeconds);
+    timer.status = 'paused';
+    timer.startTimestamp = null;
+    timer.endTimestamp = null;
+    syncTimerGlobals();
+    saveStudyTimerState();
+    updateTimerDisplay();
 }
 
 function resumeTimer() {
-    if (timerRunning || !timerModeSeconds) return;
-    timerRunning = true;
-    timerInterval = setInterval(() => {
-        timerRemaining -= 1; timerElapsed += 1; updateTimerDisplay();
-        if (timerRemaining <= 0) { clearInterval(timerInterval); timerRunning = false; onTimerComplete(); }
-    }, 1000);
+    const timer = studyTimerState.timer;
+    if (timerRunning || !timerModeSeconds || timer.status !== 'paused' || timer.remainingSeconds <= 0) return;
+    const now = Date.now();
+    timer.status = 'running';
+    timer.startTimestamp = now;
+    timer.endTimestamp = now + timer.remainingSeconds * 1000;
+    saveStudyTimerState();
+    syncTimerGlobals();
+    ensureStudyClock();
+    updateTimerDisplay();
 }
 
 function resetTimer() {
-    clearInterval(timerInterval); timerRunning = false; timerRemaining = timerModeSeconds; timerElapsed = 0; updateTimerDisplay();
+    const timer = studyTimerState.timer;
+    timer.status = 'idle';
+    timer.remainingSeconds = timer.durationSeconds;
+    timer.elapsedSeconds = 0;
+    timer.startTimestamp = null;
+    timer.endTimestamp = null;
+    timer.completionRecorded = false;
+    syncTimerGlobals();
+    saveStudyTimerState();
+    updateTimerDisplay();
 }
 
-function onTimerComplete() {
-    const course = document.getElementById('timerCourse').value || 'General';
-    const type = document.getElementById('timerType').value || 'General';
-    const durationMinutes = Math.max(1, Math.round(timerElapsed/60));
-    const date = new Date(); date.setHours(0,0,0,0);
-    const session = {
-        id: Date.now(),
-        date: date.toISOString().split('T')[0],
-        durationMinutes,
-        course,
-        type
-    };
-    studySessions.unshift(session);
-    saveStudySessions();
-    render();
-    showToast('Study session saved: ' + durationMinutes + ' min', 'success');
+function updateStopwatchDisplay() {
+    const el = document.getElementById('stopwatchDisplay');
+    if (el) el.textContent = formatStopwatchTime(getStopwatchElapsedSeconds());
 }
+
+function startStopwatch() {
+    const stopwatch = studyTimerState.stopwatch;
+    if (stopwatch.status === 'running') return;
+    stopwatch.status = 'running';
+    stopwatch.accumulatedSeconds = 0;
+    stopwatch.startTimestamp = Date.now();
+    saveStudyTimerState();
+    ensureStudyClock();
+    updateStopwatchDisplay();
+}
+
+function pauseStopwatch() {
+    const stopwatch = studyTimerState.stopwatch;
+    if (stopwatch.status !== 'running') return;
+    stopwatch.accumulatedSeconds = getStopwatchElapsedSeconds();
+    stopwatch.status = 'paused';
+    stopwatch.startTimestamp = null;
+    saveStudyTimerState();
+    updateStopwatchDisplay();
+}
+
+function resumeStopwatch() {
+    const stopwatch = studyTimerState.stopwatch;
+    if (stopwatch.status !== 'paused') return;
+    stopwatch.status = 'running';
+    stopwatch.startTimestamp = Date.now();
+    saveStudyTimerState();
+    ensureStudyClock();
+    updateStopwatchDisplay();
+}
+
+function resetStopwatch() {
+    studyTimerState.stopwatch = { status: 'idle', accumulatedSeconds: 0, startTimestamp: null };
+    saveStudyTimerState();
+    updateStopwatchDisplay();
+}
+
+function refreshStudyTiming() {
+    reconcileStudyTimerState();
+    updateTimerDisplay();
+    updateStopwatchDisplay();
+}
+
+document.addEventListener('visibilitychange', refreshStudyTiming);
+window.addEventListener('focus', refreshStudyTiming);
+window.addEventListener('pageshow', refreshStudyTiming);
 
 // --- Study Analytics ---
 function renderStudyAnalytics() {
