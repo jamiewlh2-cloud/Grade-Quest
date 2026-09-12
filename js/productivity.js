@@ -400,7 +400,7 @@ function renderAdvisorWidgetHtml() {
             </div>
             <div class="widget-footer">
                 <span>${tips.length} insight${tips.length !== 1 ? 's' : ''}</span>
-                <span class="widget-pill">Open</span>
+                <span class="widget-pill">View Timeline</span>
             </div>
         </button>
     `;

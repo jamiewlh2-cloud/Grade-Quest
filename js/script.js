@@ -355,7 +355,7 @@ function renderHomeHub() {
             </div>
             <div class="widget-footer">
                 <span>${pendingTasks.length} pending</span>
-                <span class="widget-pill">Open</span>
+                <span class="widget-pill">View Planner</span>
             </div>
         </button>
 
@@ -375,7 +375,7 @@ function renderHomeHub() {
             </div>
             <div class="widget-footer">
                 <span>${gradeCount ? 'Live average' : 'Add grades'}</span>
-                <span class="widget-pill">Open</span>
+                <span class="widget-pill">View Grades</span>
             </div>
         </button>
 
@@ -392,7 +392,7 @@ function renderHomeHub() {
             </div>
             <div class="widget-footer">
                 <span>${courseOutlines ? Object.keys(courseOutlines).length : 0} outlines</span>
-                <span class="widget-pill">Open</span>
+                <span class="widget-pill">Review Files</span>
             </div>
         </button>
 
@@ -406,7 +406,7 @@ function renderHomeHub() {
             </div>
             <div class="widget-footer">
                 <span>${notes ? 'Saved note' : 'Empty note pad'}</span>
-                <span class="widget-pill">Open</span>
+                <span class="widget-pill">Open Notes</span>
             </div>
         </button>
 
@@ -421,7 +421,7 @@ function renderHomeHub() {
             </div>
             <div class="widget-footer">
                 <span>${mostStudiedCourseThisWeek() || 'No data'}</span>
-                <span class="widget-pill">Open</span>
+                <span class="widget-pill">Open Study</span>
             </div>
         </button>
 
@@ -436,7 +436,7 @@ function renderHomeHub() {
             </div>
             <div class="widget-footer">
                 <span>Closest: ${closestLabel}</span>
-                <span class="widget-pill">Open</span>
+                <span class="widget-pill">View Goals</span>
             </div>
         </button>
 
@@ -465,7 +465,7 @@ function renderHomeHub() {
             </div>
             <div class="widget-footer">
                 <span>${currentWeekStats.coursesStudied} courses</span>
-                <span class="widget-pill">Open</span>
+                <span class="widget-pill">View Weekly Review</span>
             </div>
         </button>
 
@@ -482,7 +482,7 @@ function renderHomeHub() {
             </div>
             <div class="widget-footer">
                 <span>${topNotifications.length} key alerts</span>
-                <span class="widget-pill">Open</span>
+                <span class="widget-pill">View Snapshot</span>
             </div>
         </button>
 
@@ -497,7 +497,7 @@ function renderHomeHub() {
             </div>
             <div class="widget-footer">
                 <span>Overdue: ${healthOverdue}</span>
-                <span class="widget-pill">Open</span>
+                <span class="widget-pill">View Health</span>
             </div>
         </button>
 
@@ -512,7 +512,7 @@ function renderHomeHub() {
             </div>
             <div class="widget-footer">
                 <span>${focusPlan.length} priorities</span>
-                <span class="widget-pill">Open</span>
+                <span class="widget-pill">View Focus</span>
             </div>
         </button>
     `;
@@ -2238,7 +2238,7 @@ async function addStudyFile() {
     const category = document.getElementById('fileCategory').value;
     const notes = document.getElementById('fileNotes').value.trim();
     const outlineText = document.getElementById('outlineInput').value.trim();
-    const selectedFile = document.getElementById('resourceUpload').files[0];
+    const selectedFile = document.getElementById('resourceUpload')?.files?.[0] || null;
     let attachment = null;
 
     if (selectedFile) {
@@ -2571,7 +2571,7 @@ function renderPlanner() {
                 <p>${task.course} • ${task.deadline || 'No deadline'} • ${task.priority}${task.linkedAssessment ? ` • ${task.linkedAssessment.name} (${task.linkedAssessment.weight}%)` : ''}</p>
             </div>
             <div style="display:flex; gap:6px;">
-                <button class="button-tertiary" onclick="togglePlannerTask(${task.id})">✓</button>
+                <button class="button-tertiary" onclick="togglePlannerTask(${task.id})">${task.done ? 'Undo' : 'Complete'}</button>
                 <button class="button-tertiary" onclick="editPlannerTask(${task.id})">Edit</button>
                 <button class="button-destructive" onclick="deletePlannerTask(${task.id})">Delete</button>
             </div>
@@ -2945,7 +2945,7 @@ function openCourseDashboard(name) {
                 <h3>${name}</h3>
             </div>
             <div style="display:flex; gap:8px; align-items:center;">
-                <button class="button-tertiary" onclick="editCourse('${name.replace(/'/g, "\\'")}')">Edit</button>
+                <button class="button-tertiary" onclick="editCourse('${name.replace(/'/g, "\\'")}')">Edit Course</button>
                 <button class="button-destructive" onclick="deleteClass('${name.replace(/'/g, "\\'")}')">Delete Course</button>
                 <button class="button-secondary" onclick="closeCourseDashboard()">← Back</button>
             </div>

@@ -2354,6 +2354,7 @@ body.dark-mode .stat {
     --input-bg: #fbfcfd;
     --card-bg: #ffffff;
     --focus-ring: #2f7f86;
+    --danger: #b42318;
     --space-1: 4px;
     --space-2: 8px;
     --space-3: 12px;
@@ -3176,6 +3177,189 @@ body.dark-mode .feedback-dialog {
 
 body.dark-mode .feedback-form-fields label {
     color: #edf3f5;
+}
+
+body.dark-mode .hero-stat span {
+    color: #d9f4f1;
+}
+
+body.dark-mode .hero-stat small {
+    color: #b8cbd2;
+}
+
+body.dark-mode .primary-nav-button.active {
+    background: #355064;
+    color: #f4fbfc;
+}
+
+/* Daily-driver layout guardrails. */
+.course-card {
+    min-width: 0;
+    padding: 18px;
+}
+
+.course-card > div:first-child {
+    min-width: 0;
+}
+
+.course-card strong {
+    overflow-wrap: anywhere;
+}
+
+.countdown-widget {
+    min-height: 0;
+    padding: 18px 24px;
+}
+
+.files-panel .panel-form,
+#filesPanel .panel-form {
+    gap: 10px;
+}
+
+#filesPanel .helper-text {
+    margin: 4px 0;
+}
+
+#settingsPanel .settings-layout {
+    gap: 16px;
+}
+
+#settingsPanel .panel-card {
+    padding: 18px;
+}
+
+@media (max-width: 760px) {
+    .container {
+        padding: 10px 12px 76px;
+    }
+
+    header {
+        min-height: 0;
+        margin-bottom: 12px;
+        gap: 6px;
+        padding-bottom: 12px;
+    }
+
+    .workspace-header {
+        padding: 10px 0 12px;
+    }
+
+    .workspace-header h2 {
+        font-size: 1rem;
+    }
+
+    .header-actions {
+        gap: 6px;
+    }
+
+    .hero-description {
+        margin-top: 4px;
+        font-size: 0.86rem;
+    }
+
+    .hero-stats {
+        gap: 14px;
+    }
+
+    .hero-stat span {
+        font-size: 1.1rem;
+    }
+
+    .tab-nav {
+        height: 58px;
+        gap: 0;
+        padding: 4px 3px;
+        flex-wrap: nowrap;
+    }
+
+    .tab-nav .primary-nav-button {
+        min-width: 0;
+        padding: 6px 2px;
+        font-size: 0.58rem;
+        white-space: nowrap;
+    }
+
+    #plannerPanel .task-item {
+        min-width: 0;
+        flex-wrap: wrap;
+    }
+
+    #plannerPanel .task-item > div:first-child {
+        min-width: 0;
+        flex: 1 1 160px;
+    }
+
+    #plannerPanel .task-item > div:last-child {
+        min-width: 0;
+        flex: 1 1 100%;
+        flex-wrap: wrap;
+        justify-content: flex-start;
+    }
+
+    #plannerPanel .task-item button {
+        flex: 0 1 auto;
+    }
+
+    .course-card {
+        padding: 14px;
+    }
+
+    .countdown-widget {
+        padding: 12px 16px;
+    }
+}
+
+@media (max-width: 340px) {
+    .tab-nav .primary-nav-button {
+        font-size: 0.53rem;
+        letter-spacing: -0.01em;
+    }
+
+    #plannerPanel .task-item > div:last-child button {
+        flex: 1 1 auto;
+    }
+}
+
+body.dark-mode .eyebrow,
+body.dark-mode .workspace-kicker,
+body.dark-mode .nav-section-label {
+    color: #b9d9dc;
+}
+
+body.dark-mode .hero-stat span {
+    color: #e1f7f4;
+}
+
+body.dark-mode .hero-stat small,
+body.dark-mode .hero-description,
+body.dark-mode .course-card small,
+body.dark-mode .resource-item p,
+body.dark-mode .task-item p {
+    color: #c4d5da;
+}
+
+body.dark-mode .course-card,
+body.dark-mode #plannerPanel .task-item,
+body.dark-mode #filesPanel > .panel-card,
+body.dark-mode #settingsPanel .panel-card,
+body.dark-mode #weeklyPanel .panel-card {
+    background: #1c2a35;
+    border-color: #526c79;
+}
+
+body.dark-mode .course-card:hover,
+body.dark-mode .context-nav-button.active,
+body.dark-mode .primary-nav-button.active {
+    background: #355064;
+    color: #f4fbfc;
+}
+
+body.dark-mode .course-card > div:first-child > div:last-child > div:first-child {
+    color: #d9f4f1 !important;
+}
+
+body.dark-mode .course-card > div:first-child > div:last-child > div:last-child {
+    color: #c4d5da !important;
 }
 
 .workspace-context-nav {
