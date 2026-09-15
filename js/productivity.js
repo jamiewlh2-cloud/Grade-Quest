@@ -813,6 +813,7 @@ function renderFocusModeTimer() {
     const pendingTasks = (plannerTasks || []).filter(t => !t.done);
     const focusPlan = computeFocusPlan();
     const topTask = focusPlan[0]?.task || null;
+    const defaultCourse = topTask?.course || activeCourseName || (Object.keys(courses).length === 1 ? Object.keys(courses)[0] : '');
 
     container.innerHTML = `
         <div class="panel-card focus-mode-card">
@@ -843,8 +844,8 @@ function renderFocusModeTimer() {
                 </select>
                 <label>Course</label>
                 <select id="focusModeCourse">
-                    <option value="">Select course</option>
-                    ${Object.keys(courses).sort().map(c => `<option value="${c}">${c}</option>`).join('')}
+                    <option value="">Choose a course (optional)</option>
+                    ${Object.keys(courses).sort().map(c => `<option value="${c}" ${defaultCourse === c ? 'selected' : ''}>${c}</option>`).join('')}
                 </select>
                 ${topTask ? `<p class="notes-line">Suggested focus: <strong>${escapeHtml(topTask.title)}</strong></p>` : ''}
                 <div class="focus-mode-controls">

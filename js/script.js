@@ -11,6 +11,8 @@ let weeklyReviewHistory = [];
 let achievements = [];
 let currentTheme = localStorage.getItem('theme') || 'light';
 let courseOverviewMarkup = null;
+let activeCourseName = '';
+let notesSaveTimer = null;
 
 function hydrateUserData(uid) {
     GradeQuestStorage.setActiveUser(uid);
@@ -57,6 +59,7 @@ function clearUserDataState() {
     semesterGoals = [];
     weeklyReviewHistory = [];
     achievements = [];
+    activeCourseName = '';
     resetStudyTimerState();
     if (typeof clearProductivityDataState === 'function') clearProductivityDataState();
     if (typeof render === 'function') render();
@@ -266,6 +269,22 @@ window.closeModalWithTransition = function (overlay) {
     }, 200);
 };
 
+function applyActiveCourseContext() {
+    document.body.dataset.activeCourse = activeCourseName || '';
+    if (!activeCourseName) return;
+    const taskCourse = document.getElementById('taskCourse');
+    const fileCourse = document.getElementById('fileCourse');
+    if (taskCourse && !taskCourse.value) taskCourse.value = activeCourseName;
+    if (fileCourse && !fileCourse.value) fileCourse.value = activeCourseName;
+    if (taskCourse) taskCourse.readOnly = true;
+    if (fileCourse) fileCourse.readOnly = true;
+    const timerCourse = document.getElementById('timerCourse');
+    if (timerCourse && !timerCourse.value && [...timerCourse.options].some(option => option.value === activeCourseName)) {
+        timerCourse.value = activeCourseName;
+        updateTimerMetadata();
+    }
+}
+
 function setActiveTab(tab, contextView = '') {
     const primaryTab = {
         home: 'home',
@@ -296,6 +315,7 @@ function setActiveTab(tab, contextView = '') {
 
     updateContextNavigation(tab, contextView);
     updateWorkspaceViewState(primaryTab, targetPanelKey);
+    applyActiveCourseContext();
 
     const primaryPanel = document.getElementById(`${primaryTab}Panel`);
     if (primaryPanel) {
@@ -533,6 +553,73 @@ function renderHomeHub() {
 
 function getTodayDateStr() {
     const d = new Date(); d.setHours(0,0,0,0); return d.toISOString().split('T')[0];
+}
+
+function startRecommendedTask(taskId) {
+    focusModeTaskId = taskId || null;
+    setActiveTab('focus');
+    window.setTimeout(() => renderFocusModeTimer(), 220);
+}
+
+function renderTodayCommandCenter() {
+    const hub = document.getElementById('hubWidgets');
+        if (!hub) return;
+
+    const pendingTasks = (plannerTasks || []).filter(task => !task.done);
+    const focusPlan = computeFocusPlan();
+    const recommended = focusPlan[0] || null;
+    const nextTask = [...pendingTasks]
+        .filter(task => task.deadline)
+        .sort((a, b) => a.deadline.localeCompare(b.deadline))[0] || pendingTasks[0] || null;
+    const nextAssessment = getNextAssessmentAcrossCourses();
+    const health = computeAcademicHealth();
+    const atRiskCourse = Object.entries(courses)
+        .map(([name, course]) => ({ name, average: computeCourseAverage(course), target: course.target || 80 }))
+        .filter(course => course.average > 0 && course.average < course.target)
+        .sort((a, b) => (b.target - b.average) - (a.target - a.average))[0] || null;
+    const recentItems = [
+        ...(studySessions || []).map(session => ({ date: session.date, text: `Study session${session.course ? ` - ${session.course}` : ''}`, type: 'Study' })),
+        ...(studyFiles || []).map(file => ({ date: file.createdAt || file.date || '', text: `Saved ${file.title}`, type: 'Resource' })),
+        ...(plannerTasks || []).filter(task => task.done).map(task => ({ date: task.completedAt || '', text: `Completed ${task.title}`, type: 'Task' }))
+    ].sort((a, b) => String(b.date).localeCompare(String(a.date))).slice(0, 4);
+    const formatDue = date => date ? (daysBetweenFromToday(date) <= 0 ? 'Due today' : `Due in ${daysBetweenFromToday(date)} days`) : 'No date set';
+    const recommendedTitle = recommended ? recommended.task.title : 'Choose a small win';
+    const recommendedMeta = recommended ? `${recommended.task.course || 'General'} - ${formatDue(recommended.task.deadline)}` : 'Start with a 25-minute focus session';
+
+    hub.innerHTML = `
+        <div class="today-command-grid">
+            <section class="today-priority panel-card">
+                <div class="today-section-heading">
+                    <div>
+                        <p class="eyebrow">Recommended study</p>
+                        <h3>${escapeHtml(recommendedTitle)}</h3>
+                        <p class="notes-line">${escapeHtml(recommendedMeta)}</p>
+                    </div>
+                    <span class="today-priority-mark" aria-hidden="true">01</span>
+                </div>
+                <p class="today-guidance">${recommended ? escapeHtml(recommended.reasons.slice(0, 2).join(' - ') || 'This is the highest-value task in your queue.') : 'A short focused session will help you build momentum.'}</p>
+                <button class="button-primary today-primary-action" onclick="${recommended ? `startRecommendedTask(${recommended.task.id})` : "setActiveTab('focus')"}">${recommended ? 'Start Recommended Study' : 'Start Focus Session'}</button>
+            </section>
+
+            <section class="today-signal-list panel-card" aria-label="Today signals">
+                <div class="today-section-heading"><div><p class="eyebrow">Next up</p><h3>What needs you</h3></div></div>
+                <button class="today-signal" onclick="setActiveTab('planner')">
+                    <span class="today-signal-label">Next task</span><strong>${escapeHtml(nextTask ? nextTask.title : 'No tasks yet')}</strong><small>${nextTask ? `${escapeHtml(nextTask.course || 'General')} - ${formatDue(nextTask.deadline)}` : 'Add a task to make your next step visible'}</small>
+                </button>
+                <button class="today-signal" onclick="setActiveTab('courses')">
+                    <span class="today-signal-label">Next assessment</span><strong>${escapeHtml(nextAssessment ? nextAssessment.name : 'No assessment date yet')}</strong><small>${nextAssessment ? `${escapeHtml(nextAssessment.courseName)} - ${formatDue(nextAssessment.dueDate)}` : 'Add an assessment in Course Detail'}</small>
+                </button>
+                <button class="today-signal" onclick="setActiveTab('health')">
+                    <span class="today-signal-label">Course risk</span><strong>${escapeHtml(atRiskCourse ? atRiskCourse.name : 'All courses steady')}</strong><small>${atRiskCourse ? `${Math.round(atRiskCourse.target - atRiskCourse.average)}% below target - ${health.overdueTasks} overdue` : `${health.coursesAtRisk} at risk - ${health.overdueTasks} overdue`}</small>
+                </button>
+            </section>
+
+            <section class="today-activity panel-card">
+                <div class="today-section-heading"><div><p class="eyebrow">Recent activity</p><h3>Keep your thread</h3></div><button class="button-tertiary" onclick="setActiveTab('weekly')">View progress</button></div>
+                ${recentItems.length ? `<div class="today-activity-list">${recentItems.map(item => `<div class="today-activity-item"><span class="today-activity-dot" aria-hidden="true"></span><span><strong>${escapeHtml(item.text)}</strong><small>${escapeHtml(item.type)}${item.date ? ` - ${item.date}` : ''}</small></span></div>`).join('')}</div>` : '<div class="workspace-empty-state"><strong>Your workspace is ready.</strong><span>Study sessions, resources, and completed tasks will appear here.</span></div>'}
+            </section>
+        </div>
+    `;
 }
 
 function formatLocalDateStr(date) {
@@ -850,86 +937,38 @@ async function resetAllData() {
 function renderSettingsDashboard() {
     const panel = document.getElementById('settingsContainer');
     if (!panel) return;
-    const profile = window.GradeQuestProfile || {};
-    const stats = computeAppStats();
-    const notifications = computeNotifications();
-    const backupStatus = getBackupStatus();
-    const achievementsDisplay = achievements.map(a => `<div class="achievement">${a.label} • ${formatBackupDate(a.unlockedAt)}</div>`).join('') || '<p class="notes-line">No achievements earned yet.</p>';
 
     panel.innerHTML = `
         <div class="settings-layout">
             <div class="settings-column settings-left">
                 <div class="panel-card">
-                    <h4>Profile</h4>
-                        <div class="panel-card">
-                            <h4>Profile</h4>
-                            <p class="notes-line">Manage your academic identity and preferences on the Profile page.</p>
-                            <button class="button-primary" onclick="setActiveTab('profile')">Open Profile</button>
-                        </div>
+                    <div class="settings-section-heading"><h4>Profile</h4><button class="button-secondary" onclick="setActiveTab('profile')">Open Profile</button></div>
+                    <p class="notes-line">Keep your academic details up to date.</p>
                     <h4>Appearance</h4>
                     <div class="panel-form">
                         <div class="radio-group">
-                            <label><input type="radio" name="themeOption" value="light" ${currentTheme==='light'?'checked':''}> Light Mode</label>
-                            <label><input type="radio" name="themeOption" value="dark" ${currentTheme==='dark'?'checked':''}> Dark Mode</label>
+                            <label><input type="radio" name="themeOption" value="light" onchange="applySelectedTheme()" ${currentTheme==='light'?'checked':''}> Light Mode</label>
+                            <label><input type="radio" name="themeOption" value="dark" onchange="applySelectedTheme()" ${currentTheme==='dark'?'checked':''}> Dark Mode</label>
                         </div>
-                        <button class="button-primary" onclick="applySelectedTheme()">Apply Theme</button>
                     </div>
                 </div>
-
-                <div id="dashboardCustomizationContainer" class="panel-card"></div>
             </div>
 
             <div class="settings-column settings-right">
                 <div class="panel-card">
-                    <h4>Notifications</h4>
-                    <div class="notification-list">${notifications.map(note => `<div class="achievement">${note.text}</div>`).join('')}</div>
-                </div>
-
-                <div class="panel-card">
-                    <h4>Application Statistics</h4>
-                    <div class="stats-grid">
-                        <div class="stat"><label>Courses</label><div class="val">${stats.courses}</div></div>
-                        <div class="stat"><label>Assignments</label><div class="val">${stats.assignments}</div></div>
-                        <div class="stat"><label>Study Sessions</label><div class="val">${stats.studySessions}</div></div>
-                        <div class="stat"><label>Files</label><div class="val">${stats.files}</div></div>
-                        <div class="stat"><label>Goals</label><div class="val">${stats.goals}</div></div>
-                        <div class="stat"><label>Study Hours</label><div class="val">${stats.studyHours}h</div></div>
-                    </div>
-                </div>
-
-                <div class="panel-card">
-                    <h4>GradeQuest Health</h4>
-                    <div class="notes-line">${backupStatus.message}</div>
-                    <div class="settings-health-grid">
-                        <div><strong>${stats.courses}</strong><p>Courses</p></div>
-                        <div><strong>${stats.assignments}</strong><p>Assignments</p></div>
-                        <div><strong>${stats.files}</strong><p>Files</p></div>
-                        <div><strong>${stats.goals}</strong><p>Goals</p></div>
-                        <div><strong>${stats.studySessions}</strong><p>Study Sessions</p></div>
-                        <div><strong>${stats.studyHours}h</strong><p>Study Hours</p></div>
-                    </div>
-                </div>
-
-                <div class="panel-card">
-                    <h4>Achievements</h4>
-                    <div class="achievement-list">${achievementsDisplay}</div>
-                </div>
-
-                <div class="panel-card">
-                    <h4>Data Management</h4>
+                    <h4>Keep a copy of your work</h4>
                     <div class="settings-actions">
                         <button class="button-primary" onclick="exportBackup()">Export Backup</button>
                         <button class="button-secondary" onclick="document.getElementById('backupImportInput').click()">Import Backup</button>
                         <button class="button-destructive" onclick="resetAllData()">Reset All Data</button>
                     </div>
-                    <p class="notes-line">${backupStatus.message}</p>
+                    <p class="notes-line">Use a backup when moving to another device.</p>
                     <input id="backupImportInput" type="file" accept=".json" class="hidden" onchange="importBackupFile(event)">
                 </div>
             </div>
         </div>
     `;
 
-    renderDashboardCustomization();
 }
 
 function renderProfileDashboard() {
@@ -1503,16 +1542,20 @@ function renderWeeklyReviewDashboard() {
     if (overdueCurrent === 0) achievements.push('✅ No overdue tasks');
     if (overallGoalsProgressValue >= 100) achievements.push('🎯 Goal reached');
 
+    const progressAction = overdueCurrent > 0
+        ? { label: 'Clear overdue work', target: 'planner' }
+        : dueSoonTasks.length
+            ? { label: 'Prepare for what is due next', target: 'planner' }
+            : coursesBelowTarget.length
+                ? { label: `Review ${coursesBelowTarget[0]}`, target: 'health' }
+                : { label: 'Start a study session', target: 'study' };
+
     panel.innerHTML = `
         <div class="panel-card">
             <div class="panel-heading">
                 <div>
-                    <p class="eyebrow">Weekly Review</p>
+                    <p class="eyebrow">Progress</p>
                     <h3>Week of ${weekStart.toDateString()}</h3>
-                </div>
-                <div class="weekly-actions">
-                    <button class="button-primary" onclick="copyWeeklySummary()">Copy Weekly Summary</button>
-                    <button class="button-secondary" onclick="copySemesterReport()">Generate Semester Report</button>
                 </div>
             </div>
 
@@ -1547,6 +1590,11 @@ function renderWeeklyReviewDashboard() {
                     <strong>${gpaChange !== null ? (gpaChange > 0 ? '+' : '') + gpaChange.toFixed(2) : 'N/A'}</strong>
                     <div class="notes-line">From last week</div>
                 </div>
+            </div>
+
+            <div class="progress-next-action">
+                <div><p class="eyebrow">Next step</p><strong>${progressAction.label}</strong></div>
+                <button class="button-primary" onclick="setActiveTab('${progressAction.target}')">Open</button>
             </div>
 
             <div class="weekly-section">
@@ -1877,8 +1925,8 @@ function renderAcademicHealthDashboard() {
         <div class="panel-card">
             <div class="panel-heading">
                 <div>
-                    <p class="eyebrow">Academic Health</p>
-                    <h3>Your overall academic standing</h3>
+                    <p class="eyebrow">Course Risk</p>
+                    <h3>Where to spend attention.</h3>
                 </div>
             </div>
 
@@ -2296,7 +2344,7 @@ function readUploadedFileAsDataURL(file) {
 async function addStudyFile() {
     const titleInput = document.getElementById('fileTitle').value.trim();
     const course = document.getElementById('fileCourse').value.trim();
-    const category = document.getElementById('fileCategory').value;
+    const category = document.getElementById('fileCategory')?.value || 'Resource';
     const notes = document.getElementById('fileNotes').value.trim();
     const outlineText = document.getElementById('outlineInput').value.trim();
     const selectedFile = document.getElementById('resourceUpload')?.files?.[0] || null;
@@ -2318,7 +2366,7 @@ async function addStudyFile() {
     const title = titleInput || (attachment ? attachment.name.replace(/\.[^/.]+$/, '') : '');
 
     if (title || attachment) {
-        const courseCode = (course || 'General').toUpperCase();
+        const courseCode = (course || activeCourseName || (Object.keys(courses).length === 1 ? Object.keys(courses)[0] : 'General')).toUpperCase();
         const parsedOutline = parseOutlineText(outlineText || notes, courseCode);
 
         if (parsedOutline.length) {
@@ -2330,7 +2378,7 @@ async function addStudyFile() {
             id: Date.now(),
             createdAt: new Date().toISOString(),
             title,
-            course: course || 'General',
+            course: course || activeCourseName || (Object.keys(courses).length === 1 ? Object.keys(courses)[0] : 'General'),
             category,
             notes,
             outlineItems: parsedOutline,
@@ -2357,7 +2405,7 @@ async function editStudyFile(id) {
         confirmLabel: 'Save resource'
     });
     const parts = String(value || '').split('|').map(part => part.trim());
-    const categories = ['Assignment', 'Lecture', 'Exam', 'Project', 'Reading', 'Other'];
+    const categories = ['Resource', 'Assignment', 'Lecture', 'Exam', 'Project', 'Reading', 'Other'];
     if (!parts[0] || (parts[2] && !categories.includes(parts[2]))) {
         showToast('Enter a title and a valid category.', 'error');
         return;
@@ -2387,10 +2435,10 @@ function addPlannerTask() {
     const title = document.getElementById('taskTitle').value.trim();
     const course = document.getElementById('taskCourse').value.trim();
     const deadline = document.getElementById('taskDeadline').value;
-    const priority = document.getElementById('taskPriority').value;
+    const priority = deadline && daysBetweenFromToday(deadline) <= 1 ? 'High' : 'Medium';
 
     if (title) {
-        const courseCode = (course || 'General').toUpperCase();
+        const courseCode = (course || activeCourseName || (Object.keys(courses).length === 1 ? Object.keys(courses)[0] : 'General')).toUpperCase();
         const linkedAssessment = findLinkedAssessment(courseCode, title);
 
         if (linkedAssessment && deadline) {
@@ -2403,7 +2451,7 @@ function addPlannerTask() {
         plannerTasks.unshift({
             id: Date.now(),
             title,
-            course: course || 'General',
+            course: course || activeCourseName || (Object.keys(courses).length === 1 ? Object.keys(courses)[0] : 'General'),
             deadline,
             priority,
             done: false,
@@ -2562,12 +2610,12 @@ function renderFiles() {
     if (!list) return;
 
     if (studyFiles.length === 0) {
-        list.innerHTML = '<p class="empty-state">No resources saved yet. Add a lecture, assignment, or reference card.</p>';
+        list.innerHTML = '<div class="workspace-empty-state"><strong>No course materials yet.</strong><span>Keep a lecture, assignment, or outline with the course it belongs to.</span><button class="button-primary" onclick="toggleWorkspaceForm(\'filesResourceForm\', document.querySelector(\'#filesPanel .panel-heading .button-primary\'))">Add Resource</button></div>';
         return;
     }
 
     list.innerHTML = studyFiles.map(file => `
-        <div class="resource-item">
+        <div class="resource-item workspace-row">
             <div>
                 <strong>${file.title}</strong>
                 <p>${file.course} • ${file.category}</p>
@@ -2614,20 +2662,20 @@ function renderPlanner() {
     const upcoming = upcomingTasks.filter(task => task.deadline && !task.done).slice(0, 3);
 
     if (plannerTasks.length === 0) {
-        list.innerHTML = '<p class="empty-state">No tasks yet. Add deadlines to keep your semester organized.</p>';
+        list.innerHTML = '<div class="workspace-empty-state"><strong>No tasks yet.</strong><span>Add a deadline to create your cross-course agenda.</span><button class="button-primary" onclick="document.getElementById(\'taskTitle\')?.focus()">Add Task</button></div>';
         timeline.innerHTML = '';
         return;
     }
 
     timeline.innerHTML = upcoming.length ? upcoming.map(task => `
-        <div class="panel-card list-item">
+        <div class="workspace-row planner-upcoming-row">
             <strong>${task.title}</strong>
             <p>${task.course} • ${task.deadline} • ${task.priority}</p>
         </div>
     `).join('') : '<p class="empty-state">No upcoming deadlines yet.</p>';
 
     list.innerHTML = plannerTasks.map(task => `
-        <div class="task-item ${task.done ? 'done' : ''}">
+        <div class="task-item workspace-row ${task.done ? 'done' : ''}">
             <div>
                 <strong>${task.title}</strong>
                 <p>${task.course} • ${task.deadline || 'No deadline'} • ${task.priority}${task.linkedAssessment ? ` • ${task.linkedAssessment.name} (${task.linkedAssessment.weight}%)` : ''}</p>
@@ -2668,6 +2716,23 @@ function renderNotes() {
     const textarea = document.getElementById('notesInput');
     if (textarea) {
         textarea.value = notes;
+        textarea.oninput = () => {
+            notes = textarea.value;
+            window.clearTimeout(notesSaveTimer);
+            notesSaveTimer = window.setTimeout(() => saveStudyData(), 500);
+        };
+    }
+}
+
+function toggleWorkspaceForm(formId, trigger) {
+    const form = document.getElementById(formId);
+    if (!form) return;
+    const isHidden = form.hasAttribute('hidden');
+    if (isHidden) form.removeAttribute('hidden');
+    else form.setAttribute('hidden', '');
+    if (trigger) {
+        trigger.textContent = isHidden ? 'Close' : 'Add Resource';
+        trigger.setAttribute('aria-expanded', String(isHidden));
     }
 }
 
@@ -2726,7 +2791,7 @@ function render() {
     // =====================
     // CORE DASHBOARDS
     // =====================
-    renderHomeHub();
+    renderTodayCommandCenter();
     applyDashboardCustomization();
     renderCountdownWidget();
     renderCalendar();
@@ -2906,7 +2971,7 @@ function renderCoursesDashboard() {
 
     const courseKeys = Object.keys(courses).sort();
     if (courseKeys.length === 0) {
-        container.innerHTML = '<p class="empty-state">No courses yet. Create your first course to get started.</p>';
+        container.innerHTML = '<div class="workspace-empty-state"><strong>No courses yet.</strong><span>Create a course to start adding assessments and deadlines.</span><button class="button-primary" onclick="createCourseFromCourses()">Create Course</button></div>';
         return;
     }
 
@@ -2967,11 +3032,11 @@ function renderFocusDashboard() {
                         </div>
                         <button class="button-tertiary" onclick="setActiveTab('planner')">Open</button>
                     </div>
-                `).join('') : '<p class="empty-state">No focus tasks available. Add a planner item to create your first priority list.</p>'}
+                `).join('') : '<div class="workspace-empty-state"><strong>No focus work yet.</strong><span>Add a task to create a clear next step.</span><button class="button-primary" onclick="setActiveTab(\'planner\')">Add Task</button></div>'}
             </div>
             <div style="margin-top:16px; display:flex; gap:12px; flex-wrap:wrap;">
-                <button class="button-primary" onclick="setActiveTab('planner')">Open Planner</button>
-                <button class="button-primary" onclick="setActiveTab('courses')">Open Course</button>
+                <button class="button-secondary" onclick="setActiveTab('planner')">Open Planner</button>
+                <button class="button-secondary" onclick="setActiveTab('courses')">Open Course</button>
                 <button class="button-primary" onclick="setActiveTab('study')">Start Study Session</button>
             </div>
         </div>
@@ -3007,9 +3072,23 @@ function getNextCourseAssessment(course, outlineItems, relatedTasks) {
     relatedTasks.filter(task => !task.done && task.deadline).forEach(task => {
         const linked = task.linkedAssessment?.name || task.title;
         const matchingGrade = (course.grades || []).find(grade => normalizeText(grade.assessment || '') === normalizeText(linked) || normalizeText(task.title).includes(normalizeText(grade.assessment || '')));
-        if (!candidates.some(item => normalizeText(item.name) === normalizeText(linked))) candidates.push({ name: matchingGrade?.assessment || linked, weight: task.linkedAssessment?.weight || matchingGrade?.weight || 0, dueDate: task.deadline, key: `task-${task.id}` });
+        const existing = candidates.find(item => normalizeText(item.name) === normalizeText(linked));
+        if (existing) {
+            existing.dueDate = task.deadline;
+            existing.weight = existing.weight || task.linkedAssessment?.weight || matchingGrade?.weight || 0;
+        } else {
+            candidates.push({ name: matchingGrade?.assessment || linked, weight: task.linkedAssessment?.weight || matchingGrade?.weight || 0, dueDate: task.deadline, key: `task-${task.id}` });
+        }
     });
     return candidates.filter(item => item.dueDate).sort((a, b) => a.dueDate.localeCompare(b.dueDate))[0] || candidates.find(item => item.name) || null;
+}
+
+function getNextAssessmentAcrossCourses() {
+    return Object.entries(courses).map(([courseName, course]) => {
+        const relatedTasks = (plannerTasks || []).filter(task => (task.course || 'General').toUpperCase() === courseName.toUpperCase());
+        const assessment = getNextCourseAssessment(course, getCourseOutline(courseName), relatedTasks);
+        return assessment?.dueDate ? { ...assessment, courseName } : null;
+    }).filter(Boolean).sort((a, b) => a.dueDate.localeCompare(b.dueDate))[0] || null;
 }
 
 function toggleCourseDetailRow(button) {
@@ -3055,7 +3134,7 @@ function buildCourseAssessmentEntries(name, course, outlineItems, relatedTasks) 
 function renderCourseAssessmentRows(name, course, outlineItems, relatedTasks) {
     const courseArg = name.replace(/'/g, "\\'");
     const entries = buildCourseAssessmentEntries(name, course, outlineItems, relatedTasks);
-    if (!entries.length) return '<p class="empty-state">No assessments recorded yet.</p>';
+    if (!entries.length) return `<div class="workspace-empty-state"><strong>No assessments yet.</strong><span>Add the next exam, midterm, or assignment for this course.</span><button class="button-primary" onclick="addGradeFromCourse('${courseArg}')">Add Assessment</button></div>`;
 
     return `<div class="course-detail-list">${entries.map((entry, index) => {
         const { item, grade, gradeIndex, outlineIndex, relatedTask } = entry;
@@ -3233,6 +3312,7 @@ function openCourseDashboard(name) {
 
     const course = courses[name];
     if (!course) return;
+    activeCourseName = name;
     const overviewCard = panel.querySelector('.panel-card');
     if (overviewCard && !courseOverviewMarkup) courseOverviewMarkup = overviewCard.innerHTML;
 
@@ -3260,12 +3340,10 @@ function openCourseDashboard(name) {
     panel.querySelector('.panel-card').innerHTML = `
         <div class="panel-heading">
             <div>
-                <p class="eyebrow">Course Dashboard</p>
+                <p class="eyebrow">Course</p>
                 <h3>${name} <span class="course-health-badge ${courseHealth.tone}">${courseHealth.label}</span></h3>
             </div>
             <div style="display:flex; gap:8px; align-items:center;">
-                <button class="button-tertiary" onclick="editCourse('${name.replace(/'/g, "\\'")}')">Edit Course</button>
-                <button class="button-destructive" onclick="deleteClass('${name.replace(/'/g, "\\'")}')">Delete Course</button>
                 <button class="button-secondary" onclick="closeCourseDashboard()">← Back</button>
             </div>
         </div>
@@ -3299,17 +3377,17 @@ function openCourseDashboard(name) {
             </div>
 
             <div class="panel-card">
-                <div class="course-section-heading"><h3>Assessments</h3><button class="button-primary" onclick="addGradeFromCourse('${name.replace(/'/g, "\\'")}')">Add Grade</button></div>
+                <div class="course-section-heading"><h3>Assessments</h3><button class="button-primary" onclick="addGradeFromCourse('${name.replace(/'/g, "\\'")}')">${course.grades?.length ? 'Add Grade' : 'Add Assessment'}</button></div>
                 ${renderCourseAssessmentRows(name, course, outlineItems, relatedTasks)}
             </div>
 
             <div class="panel-card">
-                <div class="course-section-heading"><h3>Resources</h3><button class="button-primary" onclick="addResourceFromCourse('${name.replace(/'/g, "\\'")}')">Add Resource</button></div>
+                <div class="course-section-heading"><h3>Resources</h3><button class="button-secondary" onclick="addResourceFromCourse('${name.replace(/'/g, "\\'")}')">Add Resource</button></div>
                 ${renderCourseResourceRows(name, linkedFiles)}
             </div>
 
             <div class="panel-card">
-                <div class="course-section-heading"><h3>Tasks</h3><button class="button-primary" onclick="addTaskFromCourse('${name.replace(/'/g, "\\'")}')">Add Task</button></div>
+                <div class="course-section-heading"><h3>Tasks</h3><button class="button-secondary" onclick="addTaskFromCourse('${name.replace(/'/g, "\\'")}')">Add Task</button></div>
                 ${renderCourseTaskRows(name, relatedTasks)}
             </div>
 
@@ -3321,12 +3399,12 @@ function openCourseDashboard(name) {
             </div>
 
             <div class="panel-card course-notes-section">
-                <div class="course-section-heading"><h3>Notes</h3><button class="button-primary" onclick="addNoteFromCourse('${name.replace(/'/g, "\\'")}')">Add Note</button></div>
-                ${courseNotes.length ? `<div class="course-notes-list">${courseNotes.map(note => `<div class="course-note-item" data-note-id="${note.id}"><p>${escapeHtml(note.text)}</p><div class="course-detail-row-actions"><button class="button-secondary" onclick="startInlineCourseNoteEdit('${name.replace(/'/g, "\\'")}', ${note.id})">Edit Note</button><button class="button-destructive" onclick="deleteCourseNote('${name.replace(/'/g, "\\'")}', ${note.id})">Delete Note</button></div></div>`).join('')}</div>` : '<p class="empty-state">No course notes yet. Add a note to keep context with this course.</p>'}
+                <div class="course-section-heading"><h3>Notes</h3><button class="button-secondary" onclick="addNoteFromCourse('${name.replace(/'/g, "\\'")}')">Add Note</button></div>
+                ${courseNotes.length ? `<div class="course-notes-list">${courseNotes.map(note => `<div class="course-note-item" data-note-id="${note.id}"><p>${escapeHtml(note.text)}</p><div class="course-detail-row-actions"><button class="button-secondary" onclick="startInlineCourseNoteEdit('${name.replace(/'/g, "\\'")}', ${note.id})">Edit Note</button><button class="button-destructive" onclick="deleteCourseNote('${name.replace(/'/g, "\\'")}', ${note.id})">Delete Note</button></div></div>`).join('')}</div>` : `<div class="workspace-empty-state"><strong>No notes yet.</strong><span>Keep a reminder with this course.</span><button class="button-primary" onclick="addNoteFromCourse('${name.replace(/'/g, "\\'")}')">Add Note</button></div>`}
             </div>
 
             <div class="panel-card course-study-section">
-                <div class="course-section-heading"><h3>Study Activity</h3><button class="button-primary" onclick="startStudyFromCourse('${name.replace(/'/g, "\\'")}')">Start Study Session</button></div>
+                <div class="course-section-heading"><h3>Study Activity</h3></div>
                 ${(() => { const sessions = studySessions.filter(session => String(session.course || '').toUpperCase() === name.toUpperCase()).slice(0, 5); return sessions.length ? `<div class="course-study-list">${sessions.map(session => `<div class="course-study-item"><strong>${session.durationMinutes || 0} min</strong><span>${escapeHtml(session.type || 'General')}</span><small>${session.date || 'Unknown date'}</small></div>`).join('')}</div>` : '<p class="empty-state">No study sessions for this course yet.</p>'; })()}
             </div>
 
@@ -3336,7 +3414,7 @@ function openCourseDashboard(name) {
             </div>
 
             <div class="panel-card course-settings-card">
-                <h3>Course Settings</h3>
+                <h3>Course details</h3>
                 <div class="course-settings-details">
                     <div><span>Course Name</span><strong>${course.metadata?.courseName || name}</strong></div>
                     <div><span>Units</span><strong>${course.units || 3}</strong></div>
@@ -3375,8 +3453,8 @@ function createDefaultStudyTimerState() {
         activeMode: 'timer',
         timer: {
             status: 'idle',
-            durationSeconds: 0,
-            remainingSeconds: 0,
+            durationSeconds: 25 * 60,
+            remainingSeconds: 25 * 60,
             elapsedSeconds: 0,
             startTimestamp: null,
             endTimestamp: null,
@@ -3405,14 +3483,18 @@ function loadStudyTimerState() {
         timer: { ...defaults.timer, ...((saved && saved.timer) || {}) },
         stopwatch: { ...defaults.stopwatch, ...((saved && saved.stopwatch) || {}) }
     };
-    timerModeSeconds = studyTimerState.timer.durationSeconds || 0;
+    if (!studyTimerState.timer.durationSeconds) {
+        studyTimerState.timer.durationSeconds = 25 * 60;
+        studyTimerState.timer.remainingSeconds = 25 * 60;
+    }
+    timerModeSeconds = studyTimerState.timer.durationSeconds;
     syncTimerGlobals();
 }
 
 function resetStudyTimerState() {
     studyTimerState = createDefaultStudyTimerState();
-    timerModeSeconds = 0;
-    timerRemaining = 0;
+    timerModeSeconds = 25 * 60;
+    timerRemaining = 25 * 60;
     timerElapsed = 0;
     timerRunning = false;
     clearInterval(timerInterval);
@@ -3542,11 +3624,18 @@ function renderStudyCenter() {
 
     const courseOptions = Object.keys(courses).sort();
     const timer = studyTimerState.timer;
-    const isTimerMode = studyTimerState.activeMode === 'timer';
+    studyTimerState.activeMode = 'timer';
+    const isTimerMode = true;
+    const defaultCourse = activeCourseName || timer.course || (courseOptions.length === 1 ? courseOptions[0] : '');
+    const timerControls = timer.status === 'running'
+        ? `<button class="button-secondary" onclick="pauseTimer()">Pause</button><button class="button-primary" onclick="completeTimerSession()">Finish Session</button>`
+        : timer.status === 'paused'
+            ? `<button class="button-primary" onclick="resumeTimer()">Resume</button><button class="button-primary" onclick="completeTimerSession()">Finish Session</button><button class="button-secondary" onclick="resetTimer()">Reset</button>`
+            : `<button class="button-primary" onclick="startTimer()">Start Session</button>`;
 
     container.innerHTML = `
         <div class="panel-card study-timer-card">
-            <div class="study-mode-row">
+                <div class="study-mode-switch">
                 <button class="view-toggle-btn ${isTimerMode ? 'active' : ''}" onclick="switchStudyMode('timer')">Timer</button>
                 <button class="view-toggle-btn ${!isTimerMode ? 'active' : ''}" onclick="switchStudyMode('stopwatch')">Stopwatch</button>
             </div>
@@ -3554,9 +3643,10 @@ function renderStudyCenter() {
             <h3>Study Timer</h3>
             <div class="panel-form">
                 <label>Course</label>
-                <select id="timerCourse" onchange="updateTimerMetadata()">
-                    <option value="">Select course</option>
-                    ${courseOptions.map(c => `<option value="${c}" ${timer.course === c ? 'selected' : ''}>${c}</option>`).join('')}
+                ${defaultCourse ? `<p class="current-course-label">Current course: <strong>${escapeHtml(defaultCourse)}</strong></p>` : ''}
+                <select id="timerCourse" onchange="updateTimerMetadata()" ${defaultCourse ? 'hidden' : ''}>
+                    <option value="">Choose a course (optional)</option>
+                    ${courseOptions.map(c => `<option value="${c}" ${defaultCourse === c ? 'selected' : ''}>${c}</option>`).join('')}
                 </select>
                 <label>Mode</label>
                 <div class="study-mode-row">
@@ -3565,23 +3655,10 @@ function renderStudyCenter() {
                     <input id="timerCustom" class="study-custom-input" type="number" placeholder="Custom min" />
                     <button class="view-toggle-btn" onclick="applyCustomMode()">Set</button>
                 </div>
-                <label>Study type (optional)</label>
-                <select id="timerType" onchange="updateTimerMetadata()">
-                    <option value="" ${!timer.type ? 'selected' : ''}>General</option>
-                    <option ${timer.type === 'Reading' ? 'selected' : ''}>Reading</option>
-                    <option ${timer.type === 'Flashcards' ? 'selected' : ''}>Flashcards</option>
-                    <option ${timer.type === 'Assignment' ? 'selected' : ''}>Assignment</option>
-                    <option ${timer.type === 'Review' ? 'selected' : ''}>Review</option>
-                    <option ${timer.type === 'Practice Problems' ? 'selected' : ''}>Practice Problems</option>
-                </select>
                 <div class="study-timer-row">
                     <div class="study-timer-display"><span id="timerDisplay">00:00</span><small id="timerStatus"></small></div>
                     <div class="study-timer-actions">
-                        <button class="button-primary" onclick="startTimer()">Start</button>
-                        <button class="button-primary" onclick="pauseTimer()">Pause</button>
-                        <button class="button-primary" onclick="resumeTimer()">Resume</button>
-                        <button class="button-primary" onclick="completeTimerSession()">Save Session</button>
-                        <button class="button-secondary" onclick="resetTimer()">Reset</button>
+                        ${timerControls}
                     </div>
                 </div>
             </div>` : `
@@ -3589,17 +3666,8 @@ function renderStudyCenter() {
             <div class="panel-form study-session-config">
                 <label>Course</label>
                 <select id="stopwatchCourse" onchange="updateStopwatchMetadata()">
-                    <option value="">Select course</option>
-                    ${courseOptions.map(c => `<option value="${c}" ${studyTimerState.stopwatch.course === c ? 'selected' : ''}>${c}</option>`).join('')}
-                </select>
-                <label>Study type (optional)</label>
-                <select id="stopwatchType" onchange="updateStopwatchMetadata()">
-                    <option value="" ${!studyTimerState.stopwatch.type ? 'selected' : ''}>General</option>
-                    <option ${studyTimerState.stopwatch.type === 'Reading' ? 'selected' : ''}>Reading</option>
-                    <option ${studyTimerState.stopwatch.type === 'Flashcards' ? 'selected' : ''}>Flashcards</option>
-                    <option ${studyTimerState.stopwatch.type === 'Assignment' ? 'selected' : ''}>Assignment</option>
-                    <option ${studyTimerState.stopwatch.type === 'Review' ? 'selected' : ''}>Review</option>
-                    <option ${studyTimerState.stopwatch.type === 'Practice Problems' ? 'selected' : ''}>Practice Problems</option>
+                    <option value="">Choose a course (optional)</option>
+                    ${courseOptions.map(c => `<option value="${c}" ${defaultCourse === c ? 'selected' : ''}>${c}</option>`).join('')}
                 </select>
             </div>
             <div class="study-timer-row">
@@ -3613,13 +3681,14 @@ function renderStudyCenter() {
                 </div>
             </div>`}
         </div>
+        ${studySessions.length ? `
         <div class="panel-card study-analytics-card">
-            <h3>Study Analytics</h3>
+            <h3>Your study so far</h3>
             <div id="studySummary" class="study-summary-grid"></div>
             <div id="studyCharts" class="study-charts"></div>
             <div id="studyInsights" class="study-insights"></div>
             <div id="studyHistory" class="study-history"></div>
-        </div>
+        </div>` : ''}
     `;
 
     updateTimerDisplay();
@@ -4959,25 +5028,13 @@ async function deleteAssessment(course, index) {
 }
 
 async function addResourceFromCourse(name) {
-    const values = await showFormDialog({
-        title: `Add resource to ${name}`,
-        message: 'Choose a file and keep its course context attached.',
-        fields: [
-            { name: 'title', label: 'Resource name', value: '' },
-            { name: 'category', label: 'Category', value: 'Other' },
-            { name: 'notes', label: 'Notes', type: 'textarea', value: '' }
-        ],
-        confirmLabel: 'Choose File'
-    });
-    if (!values) return;
+    activeCourseName = name;
     const courseInput = document.getElementById('fileCourse');
     if (courseInput) courseInput.value = name;
     const titleInput = document.getElementById('fileTitle');
-    const categoryInput = document.getElementById('fileCategory');
     const notesInput = document.getElementById('fileNotes');
-    if (titleInput) titleInput.value = String(values.title || '').trim();
-    if (categoryInput) categoryInput.value = values.category || 'Other';
-    if (notesInput) notesInput.value = String(values.notes || '').trim();
+    if (titleInput) titleInput.value = '';
+    if (notesInput) notesInput.value = '';
     const fileInput = document.getElementById('resourceUpload');
     if (fileInput) {
         fileInput.dataset.courseContext = name;
@@ -4997,8 +5054,7 @@ async function addTaskFromCourse(name) {
         message: 'Create a planner task in this course.',
         fields: [
             { name: 'title', label: 'Task name', value: '' },
-            { name: 'deadline', label: 'Due date', type: 'date', value: '' },
-            { name: 'priority', label: 'Priority', value: 'Medium' }
+            { name: 'deadline', label: 'Due date', type: 'date', value: '' }
         ],
         confirmLabel: 'Add Task'
     });
@@ -5013,7 +5069,7 @@ async function addTaskFromCourse(name) {
         title: String(values.title).trim(),
         course: name,
         deadline: values.deadline || '',
-        priority: values.priority || 'Medium',
+        priority: values.deadline && daysBetweenFromToday(values.deadline) <= 1 ? 'High' : 'Medium',
         done: false,
         createdAt: new Date().toISOString(),
         linkedAssessment: linkedAssessment ? { name: linkedAssessment.name, weight: linkedAssessment.weight } : null

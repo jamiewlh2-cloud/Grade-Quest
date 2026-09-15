@@ -11,7 +11,7 @@ Date Created: March 13, 2026
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GradeQuest - Academic Hub</title>
+    <title>GradeQuest - Student Workspace</title>
     <meta name="theme-color" content="#17324d">
     <meta name="description" content="GradeQuest academic dashboard for courses, grades, assessments, and study planning.">
     <meta name="mobile-web-app-capable" content="yes">
@@ -78,7 +78,7 @@ Date Created: March 13, 2026
             <div>
                 <p class="workspace-kicker">GradeQuest / Workspace</p>
                 <h1 id="mainTitle">Grade Tracker</h1>
-                <p id="profileSubtitle" class="subtitle">Your personal academic hub</p>
+                <p id="profileSubtitle" class="subtitle">Your academic workspace</p>
             </div>
             <div class="header-actions">
                 <span id="authUserLabel" class="auth-user-label" hidden></span>
@@ -93,8 +93,8 @@ Date Created: March 13, 2026
         <div class="workspace-header">
             <div>
                 <p class="eyebrow">Today</p>
-                <h2>Keep your academic work moving.</h2>
-                <p class="hero-description">A focused workspace for courses, deadlines, grades, and study time.</p>
+                <h2>What matters next.</h2>
+                <p class="hero-description">One clear next step for your courses.</p>
             </div>
             <div class="hero-stats">
                 <div class="hero-stat">
@@ -114,21 +114,21 @@ Date Created: March 13, 2026
 
         <div class="tab-nav" aria-label="Primary navigation">
             <div class="nav-section-label">Workspace</div>
-            <button class="primary-nav-button button-tertiary active" data-tab="home" onclick="setActiveTab('home')">Overview</button>
+            <button class="primary-nav-button button-tertiary active" data-tab="home" onclick="setActiveTab('home')">Today</button>
             <button class="primary-nav-button button-tertiary" data-tab="courses" onclick="setActiveTab('courses')">Courses</button>
             <button class="primary-nav-button button-tertiary" data-tab="planner" onclick="setActiveTab('planner')">Planner</button>
             <button class="primary-nav-button button-tertiary" data-tab="study" onclick="setActiveTab('study')">Study</button>
-            <button class="primary-nav-button button-tertiary" data-tab="files" onclick="setActiveTab('files')">Files</button>
-            <button class="primary-nav-button button-tertiary" data-tab="weekly" onclick="setActiveTab('weekly')">Analytics</button>
+            <button class="primary-nav-button button-tertiary" data-tab="files" onclick="setActiveTab('files')">Resources</button>
+            <button class="primary-nav-button button-tertiary" data-tab="weekly" onclick="setActiveTab('weekly')">Progress</button>
             <button class="primary-nav-button button-tertiary" data-tab="settings" onclick="setActiveTab('settings')">Settings</button>
         </div>
 
         <section id="homePanel" class="dashboard-panel active-panel">
             <div class="hub-shell">
                 <div class="hub-intro">
-                    <p class="eyebrow">Overview</p>
-                    <h3>What requires your attention right now?</h3>
-                    <p>Review today’s work, upcoming deadlines, course health, and recent activity.</p>
+                    <p class="eyebrow">Today</p>
+                    <h3>Your next best step, in one place.</h3>
+                    <p>See what is due, where attention matters, and how to keep moving.</p>
                 </div>
                 
                 <div class="countdown-widget">
@@ -221,7 +221,7 @@ Date Created: March 13, 2026
                 <div class="panel-heading">
                     <div>
                         <p class="eyebrow">Courses</p>
-                        <h3>Your Course Dashboard</h3>
+                        <h3>Your courses</h3>
                     </div>
                     <button class="button-primary" onclick="createCourseFromCourses()">+ New Course</button>
                 </div>
@@ -234,7 +234,7 @@ Date Created: March 13, 2026
                 <div class="panel-heading">
                     <div>
                         <p class="eyebrow">Goals</p>
-                        <h3>Semester Goals Dashboard</h3>
+                        <h3>Semester goals</h3>
                     </div>
                 </div>
                 <div id="goalsContainer" class="panel-body"></div>
@@ -242,16 +242,16 @@ Date Created: March 13, 2026
         </section>
 
         <section id="weeklyPanel" class="dashboard-panel">
-            <div class="workspace-context-nav" aria-label="Analytics navigation">
+            <div class="workspace-context-nav" aria-label="Progress navigation">
                 <button class="context-nav-button button-tertiary active" data-context-view="progress" onclick="setActiveTab('weekly', 'progress')">Progress</button>
-                <button class="context-nav-button button-tertiary" data-context-view="predictor" onclick="setActiveTab('predictor', 'predictor')">Grade analysis</button>
-                <button class="context-nav-button button-tertiary" data-context-view="health" onclick="setActiveTab('health', 'health')">Course health</button>
+                <button class="context-nav-button button-tertiary" data-context-view="predictor" onclick="setActiveTab('predictor', 'predictor')">Grade outlook</button>
+                <button class="context-nav-button button-tertiary" data-context-view="health" onclick="setActiveTab('health', 'health')">Course risk</button>
             </div>
             <div class="panel-card">
                 <div class="panel-heading">
                     <div>
-                        <p class="eyebrow">Weekly Review</p>
-                        <h3>Study and assignment recap</h3>
+                        <p class="eyebrow">Progress</p>
+                        <h3>Know what is improving and what needs attention.</h3>
                     </div>
                 </div>
                 <div id="weeklyContainer" class="panel-body"></div>
@@ -262,7 +262,7 @@ Date Created: March 13, 2026
             <div class="panel-card">
                 <div class="panel-heading">
                     <div>
-                        <p class="eyebrow">Semester Predictor</p>
+                        <p class="eyebrow">Grade Outlook</p>
                         <h3>Forecast your GPA and course outcomes</h3>
                     </div>
                 </div>
@@ -275,7 +275,7 @@ Date Created: March 13, 2026
                 <div class="panel-heading">
                     <div>
                         <p class="eyebrow">Assignments</p>
-                        <h3>Track deadlines and task status</h3>
+                        <h3>Upcoming work</h3>
                     </div>
                 </div>
                 <div id="assignmentsContainer" class="panel-body"></div>
@@ -292,7 +292,7 @@ Date Created: March 13, 2026
                 <div class="panel-heading">
                     <div>
                         <p class="eyebrow">Study</p>
-                        <h3>Sessions and practice</h3>
+                        <h3>Start a study session.</h3>
                     </div>
                 </div>
                 <div id="studyContainer" class="study-grid"></div>
@@ -317,7 +317,7 @@ Date Created: March 13, 2026
                 <div class="panel-heading">
                     <div>
                         <p class="eyebrow">Focus</p>
-                        <h3>Focus Dashboard & Priorities</h3>
+                        <h3>Focus</h3>
                     </div>
                 </div>
                 <div id="focusContainer" class="panel-body"></div>
@@ -329,8 +329,8 @@ Date Created: March 13, 2026
             <div class="panel-card">
                 <div class="panel-heading">
                     <div>
-                        <p class="eyebrow">Academic Health</p>
-                        <h3>Single view of your academic standing</h3>
+                        <p class="eyebrow">Course Risk</p>
+                        <h3>What needs attention.</h3>
                     </div>
                 </div>
                 <div id="healthContainer" class="panel-body"></div>
@@ -341,48 +341,26 @@ Date Created: March 13, 2026
             <div class="panel-card">
                 <div class="panel-heading">
                     <div>
-                        <p class="eyebrow">Files</p>
-                        <h3>Documents and references</h3>
+                        <p class="eyebrow">Resources</p>
+                        <h3>Course materials</h3>
                     </div>
+                    <button class="button-primary" onclick="toggleWorkspaceForm('filesResourceForm', this)">Add Resource</button>
                 </div>
-                <div class="panel-form">
-                    <input type="text" id="fileTitle" placeholder="File / topic name">
-                    <input type="text" id="fileCourse" placeholder="Course code">
-                    <select id="fileCategory">
-                        <option value="Assignment">Assignment</option>
-                        <option value="Lecture">Lecture</option>
-                        <option value="Exam">Exam</option>
-                        <option value="Project">Project</option>
-                        <option value="Reading">Reading</option>
-                        <option value="Other">Other</option>
-                    </select>
+                <div id="filesResourceForm" class="panel-form workspace-form" hidden>
+                    <input type="text" id="fileTitle" placeholder="Resource name (optional)">
+                    <input type="text" id="fileCourse" placeholder="Course (optional)">
                     <label class="file-input-label">
                         <span class=\"file-label-text\">📎 Choose File (Image or PDF)</span>
                         <input type="file" id="resourceUpload" class="upload-input" accept="image/*,.pdf" />
                     </label>
                     <textarea id="fileNotes" placeholder="Add notes, links, or reminders"></textarea>
-                    <textarea id="outlineInput" placeholder="Paste a course outline here. Example: Assignment 1 - 10%, Midterm - 30%, Final Exam - 40%"></textarea>
-                    <p class="helper-text">Upload a scanned image or PDF, or paste a course outline to connect weights to your grade tracker.</p>
+                    <textarea id="outlineInput" placeholder="Course outline (optional)"></textarea>
+                    <p class="helper-text">Add a lecture, assignment, exam, or course outline. GradeQuest will connect it to the current course when possible.</p>
                     <button onclick="addStudyFile()" class="button-primary">
                         Save Resource
                     </button>
 
-                    <button 
-                        id="importCourseOutlineBtn"
-                        class="button-primary"
-                        type="button">
-                        Import Course Outline PDF
-                    </button>
-
-                    <div class="form-row">
-                        <label>Importer Mode</label>
-                        <select id="importModeSelect">
-                            <option value="stable">Use Stable Importer</option>
-                            <option value="learning">Use Learning Importer</option>
-                        </select>
-                    </div>
-
-                    <p class="helper-text">Stable importer writes to production data. Learning importer stores review feedback separately.</p>
+                    <button id="importCourseOutlineBtn" class="button-secondary" type="button">Import Course Outline</button>
 
 <input
     type="file"
@@ -426,18 +404,13 @@ Date Created: March 13, 2026
                 <div class="panel-heading">
                     <div>
                         <p class="eyebrow">Planner</p>
-                        <h3>Track deadlines and priorities</h3>
+                        <h3>What needs to get done.</h3>
                     </div>
                 </div>
                 <div class="panel-form">
-                    <input type="text" id="taskTitle" placeholder="Task name">
-                    <input type="text" id="taskCourse" placeholder="Course / subject">
+                    <input type="text" id="taskTitle" placeholder="What needs to get done?" autofocus>
+                    <input type="text" id="taskCourse" placeholder="Course (optional)">
                     <input type="date" id="taskDeadline">
-                    <select id="taskPriority">
-                        <option value="High">High priority</option>
-                        <option value="Medium">Medium priority</option>
-                        <option value="Low">Low priority</option>
-                    </select>
                     <button onclick="addPlannerTask()" class="button-primary">Add Task</button>
                 </div>
                 <div id="plannerTimeline" class="timeline"></div>
@@ -450,13 +423,13 @@ Date Created: March 13, 2026
                 <div class="panel-heading">
                     <div>
                         <p class="eyebrow">Notes</p>
-                        <h3>Capture ideas and reminders</h3>
+                        <h3>Quick notes</h3>
                     </div>
                 </div>
                 <textarea id="notesInput" class="notes-textarea" placeholder="Jot down ideas, study plans, or anything else you want to remember..."></textarea>
                 <div class="notes-actions">
-                    <button onclick="saveNotes()" class="button-primary">Save Notes</button>
                     <button onclick="deleteNotes()" class="button-destructive">Clear Notes</button>
+                    <span class="notes-save-hint">Saved automatically</span>
                 </div>
             </div>
         </section>
@@ -474,7 +447,7 @@ Date Created: March 13, 2026
                 <div class="panel-heading">
                     <div>
                         <p class="eyebrow">Settings</p>
-                        <h3>Personalize GradeQuest</h3>
+                        <h3>Preferences</h3>
                     </div>
                 </div>
                 <div id="settingsContainer" class="settings-grid"></div>
