@@ -286,6 +286,13 @@ function applyActiveCourseContext() {
 }
 
 function setActiveTab(tab, contextView = '') {
+    if (tab === 'courses' && courseOverviewMarkup) {
+        const coursesPanel = document.getElementById('coursesPanel');
+        const overviewCard = coursesPanel?.querySelector('.panel-card');
+        if (overviewCard) overviewCard.innerHTML = courseOverviewMarkup;
+        courseOverviewMarkup = null;
+        activeCourseName = '';
+    }
     const primaryTab = {
         home: 'home',
         courses: 'courses',
@@ -316,6 +323,22 @@ function setActiveTab(tab, contextView = '') {
     updateContextNavigation(tab, contextView);
     updateWorkspaceViewState(primaryTab, targetPanelKey);
     applyActiveCourseContext();
+
+    const workspaceCopy = {
+        home: ['Today', 'What matters next.', 'One clear next step for your courses.'],
+        courses: ['Courses', 'Your academic workspace.', 'Every course, assessment, task, and resource in one place.'],
+        planner: ['Planner', 'Turn deadlines into a plan.', 'See the work that moves each course forward.'],
+        study: ['Study', 'Start with one focused session.', 'Choose a course and make the next block count.'],
+        files: ['Resources', 'Find what your courses need.', 'Keep notes, files, and outlines attached to the right course.'],
+        weekly: ['Progress', 'Know what to do next.', 'Use this week\'s signal to choose your next academic move.'],
+        settings: ['Settings', 'Shape your workspace.', 'Keep your profile and preferences ready for the semester.']
+    }[primaryTab] || ['Workspace', 'Keep moving.', 'Your academic work, gathered in one place.'];
+    const eyebrow = document.getElementById('workspaceEyebrow');
+    const title = document.getElementById('workspaceTitle');
+    const description = document.getElementById('workspaceDescription');
+    if (eyebrow) eyebrow.textContent = workspaceCopy[0];
+    if (title) title.textContent = workspaceCopy[1];
+    if (description) description.textContent = workspaceCopy[2];
 
     const primaryPanel = document.getElementById(`${primaryTab}Panel`);
     if (primaryPanel) {
@@ -585,6 +608,11 @@ function renderTodayCommandCenter() {
     const formatDue = date => date ? (daysBetweenFromToday(date) <= 0 ? 'Due today' : `Due in ${daysBetweenFromToday(date)} days`) : 'No date set';
     const recommendedTitle = recommended ? recommended.task.title : 'Choose a small win';
     const recommendedMeta = recommended ? `${recommended.task.course || 'General'} - ${formatDue(recommended.task.deadline)}` : 'Start with a 25-minute focus session';
+    const assessmentLabel = nextAssessment && recommended && normalizeText(nextAssessment.name) === normalizeText(recommended.task.title) ? 'Assessment deadline' : (nextAssessment ? nextAssessment.name : 'No assessment date yet');
+    const nextTaskSignal = nextTask && (!recommended || nextTask.id !== recommended.task.id) ? `
+                <button class="today-signal" onclick="setActiveTab('planner')">
+                    <span class="today-signal-label">Next task</span><strong>${escapeHtml(nextTask.title)}</strong><small>${escapeHtml(nextTask.course || 'General')} - ${formatDue(nextTask.deadline)}</small>
+                </button>` : '';
 
     hub.innerHTML = `
         <div class="today-command-grid">
@@ -603,11 +631,9 @@ function renderTodayCommandCenter() {
 
             <section class="today-signal-list panel-card" aria-label="Today signals">
                 <div class="today-section-heading"><div><p class="eyebrow">Next up</p><h3>What needs you</h3></div></div>
-                <button class="today-signal" onclick="setActiveTab('planner')">
-                    <span class="today-signal-label">Next task</span><strong>${escapeHtml(nextTask ? nextTask.title : 'No tasks yet')}</strong><small>${nextTask ? `${escapeHtml(nextTask.course || 'General')} - ${formatDue(nextTask.deadline)}` : 'Add a task to make your next step visible'}</small>
-                </button>
+                ${nextTaskSignal}
                 <button class="today-signal" onclick="setActiveTab('courses')">
-                    <span class="today-signal-label">Next assessment</span><strong>${escapeHtml(nextAssessment ? nextAssessment.name : 'No assessment date yet')}</strong><small>${nextAssessment ? `${escapeHtml(nextAssessment.courseName)} - ${formatDue(nextAssessment.dueDate)}` : 'Add an assessment in Course Detail'}</small>
+                    <span class="today-signal-label">Next assessment</span><strong>${escapeHtml(assessmentLabel)}</strong><small>${nextAssessment ? `${escapeHtml(nextAssessment.courseName)} - ${formatDue(nextAssessment.dueDate)}` : 'Add an assessment in Course Detail'}</small>
                 </button>
                 <button class="today-signal" onclick="setActiveTab('health')">
                     <span class="today-signal-label">Course risk</span><strong>${escapeHtml(atRiskCourse ? atRiskCourse.name : 'All courses steady')}</strong><small>${atRiskCourse ? `${Math.round(atRiskCourse.target - atRiskCourse.average)}% below target - ${health.overdueTasks} overdue` : `${health.coursesAtRisk} at risk - ${health.overdueTasks} overdue`}</small>
@@ -2985,20 +3011,27 @@ function renderCoursesDashboard() {
         const linkedFiles = (studyFiles || []).filter(f => (f.course || '').toUpperCase() === name.toUpperCase()).length;
         const upcomingTasks = (plannerTasks || []).filter(t => (t.course || 'General').toUpperCase() === name.toUpperCase() && !t.done && t.deadline).length;
         const target = course.target || 0;
+        const relatedTasks = (plannerTasks || []).filter(t => (t.course || 'General').toUpperCase() === name.toUpperCase() && !t.done);
+        const nextTask = relatedTasks.filter(t => t.deadline).sort((a, b) => a.deadline.localeCompare(b.deadline))[0] || relatedTasks[0];
+        const courseHealth = getCourseHealthState(course, relatedTasks);
 
         return `
             <div class="course-card panel-card" data-course="${name}">
-                <div style="display:flex; justify-content: space-between; align-items:center; gap:12px;">
-                    <div>
-                        <button class="button-tertiary" onclick="openCourseDashboard('${name.replace(/'/g, "\\'")}')"><strong>${name}</strong></button>
-                        <div style="color:var(--muted); font-size:0.9rem;">${gradeCount} assessments • ${linkedFiles} files • ${upcomingTasks} upcoming</div>
-                    </div>
-                    <div style="text-align:right;">
-                        <div style="font-size:1.25rem; font-weight:800; color:var(--primary);">${currentAvg}%</div>
-                        <div style="color:var(--muted); font-weight:700;">Target: ${target}%</div>
-                    </div>
+                <div class="course-card-topline">
+                    <span class="course-card-status ${courseHealth.tone}">${courseHealth.label}</span>
+                    <span class="course-card-units">${course.units || 3} units</span>
+                </div>
+                <button class="course-card-open" onclick="openCourseDashboard('${name.replace(/'/g, "\\'")}')">
+                    <span class="course-card-title">${name}</span>
+                    <span class="course-card-subtitle">${nextTask ? `Next: ${escapeHtml(nextTask.title)}` : 'No next task set'}</span>
+                </button>
+                <div class="course-card-metrics">
+                    <span><strong>${currentAvg}%</strong><small>Current</small></span>
+                    <span><strong>${target}%</strong><small>Target</small></span>
+                    <span><strong>${upcomingTasks}</strong><small>Upcoming</small></span>
                 </div>
                 <div class="course-card-actions">
+                    <button class="button-primary" onclick="openCourseDashboard('${name.replace(/'/g, "\\'")}')">Open course</button>
                     <button class="button-tertiary" onclick="editCourse('${name.replace(/'/g, "\\'")}')">Edit</button>
                     <button class="button-destructive" onclick="deleteClass('${name.replace(/'/g, "\\'")}')">Delete</button>
                 </div>
@@ -3453,8 +3486,8 @@ function createDefaultStudyTimerState() {
         activeMode: 'timer',
         timer: {
             status: 'idle',
-            durationSeconds: 25 * 60,
-            remainingSeconds: 25 * 60,
+            durationSeconds: 0,
+            remainingSeconds: 0,
             elapsedSeconds: 0,
             startTimestamp: null,
             endTimestamp: null,
@@ -3483,9 +3516,9 @@ function loadStudyTimerState() {
         timer: { ...defaults.timer, ...((saved && saved.timer) || {}) },
         stopwatch: { ...defaults.stopwatch, ...((saved && saved.stopwatch) || {}) }
     };
-    if (!studyTimerState.timer.durationSeconds) {
-        studyTimerState.timer.durationSeconds = 25 * 60;
-        studyTimerState.timer.remainingSeconds = 25 * 60;
+    if (studyTimerState.timer.status === 'idle') {
+        studyTimerState.timer.durationSeconds = 0;
+        studyTimerState.timer.remainingSeconds = 0;
     }
     timerModeSeconds = studyTimerState.timer.durationSeconds;
     syncTimerGlobals();
@@ -3493,8 +3526,8 @@ function loadStudyTimerState() {
 
 function resetStudyTimerState() {
     studyTimerState = createDefaultStudyTimerState();
-    timerModeSeconds = 25 * 60;
-    timerRemaining = 25 * 60;
+    timerModeSeconds = 0;
+    timerRemaining = 0;
     timerElapsed = 0;
     timerRunning = false;
     clearInterval(timerInterval);
@@ -3534,7 +3567,8 @@ function getStopwatchElapsedSeconds(now = Date.now()) {
 function getTimerElapsedSeconds(now = Date.now()) {
     const timer = studyTimerState.timer;
     if (timer.status === 'running' && timer.sessionStartTimestamp) {
-        return Math.max(0, Math.min(timer.durationSeconds, Math.floor((now - timer.sessionStartTimestamp) / 1000)));
+        const elapsed = Math.max(0, Math.floor((now - timer.sessionStartTimestamp) / 1000));
+        return timer.durationSeconds > 0 ? Math.min(timer.durationSeconds, elapsed) : elapsed;
     }
     return Math.max(0, timer.elapsedSeconds || 0);
 }
@@ -3542,6 +3576,12 @@ function getTimerElapsedSeconds(now = Date.now()) {
 function reconcileStudyTimerState() {
     const timer = studyTimerState.timer;
     if (timer.status !== 'running') {
+        syncTimerGlobals();
+        return;
+    }
+
+    if (!timer.durationSeconds) {
+        timer.elapsedSeconds = getTimerElapsedSeconds();
         syncTimerGlobals();
         return;
     }
@@ -3627,6 +3667,7 @@ function renderStudyCenter() {
     studyTimerState.activeMode = 'timer';
     const isTimerMode = true;
     const defaultCourse = activeCourseName || timer.course || (courseOptions.length === 1 ? courseOptions[0] : '');
+    const savedDurationMinutes = timer.status !== 'idle' && timer.durationSeconds ? Math.round(timer.durationSeconds / 60) : '';
     const timerControls = timer.status === 'running'
         ? `<button class="button-secondary" onclick="pauseTimer()">Pause</button><button class="button-primary" onclick="completeTimerSession()">Finish Session</button>`
         : timer.status === 'paused'
@@ -3648,13 +3689,8 @@ function renderStudyCenter() {
                     <option value="">Choose a course (optional)</option>
                     ${courseOptions.map(c => `<option value="${c}" ${defaultCourse === c ? 'selected' : ''}>${c}</option>`).join('')}
                 </select>
-                <label>Mode</label>
-                <div class="study-mode-row">
-                    <button class="view-toggle-btn" onclick="setTimerMode(25)">25 min</button>
-                    <button class="view-toggle-btn" onclick="setTimerMode(50)">50 min</button>
-                    <input id="timerCustom" class="study-custom-input" type="number" placeholder="Custom min" />
-                    <button class="view-toggle-btn" onclick="applyCustomMode()">Set</button>
-                </div>
+                <label for="timerDuration">How long? <span class="notes-line">Optional</span></label>
+                <input id="timerDuration" class="study-custom-input" type="number" min="1" max="180" placeholder="Leave blank to count up" value="${savedDurationMinutes}" />
                 <div class="study-timer-row">
                     <div class="study-timer-display"><span id="timerDisplay">00:00</span><small id="timerStatus"></small></div>
                     <div class="study-timer-actions">
@@ -3736,7 +3772,7 @@ function updateTimerDisplay() {
     const el = document.getElementById('timerDisplay');
     if (!el) return;
     reconcileStudyTimerState();
-    const s = getTimerRemainingSeconds();
+    const s = studyTimerState.timer.durationSeconds > 0 ? getTimerRemainingSeconds() : getTimerElapsedSeconds();
     const mm = String(Math.floor(s/60)).padStart(2,'0');
     const ss = String(s%60).padStart(2,'0');
     el.textContent = `${mm}:${ss}`;
@@ -3747,15 +3783,19 @@ function updateTimerDisplay() {
 function startTimer() {
     const course = document.getElementById('timerCourse').value;
     if (!course) { showToast('Please select a course before starting.', 'error'); return; }
-    if (!timerModeSeconds) { showToast('Please pick a mode (25/50) or set a custom duration.', 'error'); return; }
     if (timerRunning) return;
+    const durationInput = document.getElementById('timerDuration');
+    const durationMinutes = durationInput ? parseInt(durationInput.value, 10) || 0 : 0;
+    const durationSeconds = durationMinutes > 0 ? durationMinutes * 60 : 0;
+    studyTimerState.timer.durationSeconds = durationSeconds;
+    studyTimerState.timer.remainingSeconds = durationSeconds;
     updateTimerMetadata();
     const now = Date.now();
     studyTimerState.timer.status = 'running';
     studyTimerState.timer.startTimestamp = now;
-    studyTimerState.timer.endTimestamp = now + timerModeSeconds * 1000;
+    studyTimerState.timer.endTimestamp = durationSeconds ? now + durationSeconds * 1000 : null;
     studyTimerState.timer.sessionStartTimestamp = now;
-    studyTimerState.timer.remainingSeconds = timerModeSeconds;
+    studyTimerState.timer.remainingSeconds = durationSeconds;
     studyTimerState.timer.elapsedSeconds = 0;
     studyTimerState.timer.completionRecorded = false;
     syncTimerGlobals();
@@ -3768,8 +3808,12 @@ function pauseTimer() {
     if (!timerRunning) return;
     reconcileStudyTimerState();
     const timer = studyTimerState.timer;
-    timer.remainingSeconds = getTimerRemainingSeconds();
-    timer.elapsedSeconds = Math.max(0, timer.durationSeconds - timer.remainingSeconds);
+    if (timer.durationSeconds > 0) {
+        timer.remainingSeconds = getTimerRemainingSeconds();
+        timer.elapsedSeconds = Math.max(0, timer.durationSeconds - timer.remainingSeconds);
+    } else {
+        timer.elapsedSeconds = getTimerElapsedSeconds();
+    }
     timer.status = 'paused';
     timer.startTimestamp = null;
     timer.endTimestamp = null;
@@ -3780,11 +3824,11 @@ function pauseTimer() {
 
 function resumeTimer() {
     const timer = studyTimerState.timer;
-    if (timerRunning || !timerModeSeconds || timer.status !== 'paused' || timer.remainingSeconds <= 0) return;
+    if (timerRunning || timer.status !== 'paused' || (timer.durationSeconds > 0 && timer.remainingSeconds <= 0)) return;
     const now = Date.now();
     timer.status = 'running';
     timer.startTimestamp = now;
-    timer.endTimestamp = now + timer.remainingSeconds * 1000;
+    timer.endTimestamp = timer.durationSeconds > 0 ? now + timer.remainingSeconds * 1000 : null;
     saveStudyTimerState();
     syncTimerGlobals();
     ensureStudyClock();

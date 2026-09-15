@@ -4381,7 +4381,6 @@ h1 {
 .workspace-header .hero-stats,
 #homePanel .countdown-widget,
 .study-mode-switch,
-.study-timer-card .panel-form > label:nth-of-type(2),
 .study-timer-card .panel-form > .study-mode-row {
     display: none;
 }
@@ -4477,25 +4476,53 @@ h1 {
 }
 
 .course-card {
-    padding: 14px 16px;
-    background: var(--surface-secondary);
-    border-color: transparent;
-    box-shadow: none;
+    display: flex;
+    min-height: 190px;
+    padding: 18px;
+    flex-direction: column;
+    background: var(--surface);
+    border-color: var(--border);
+    box-shadow: var(--shadow-raised);
 }
 
 .course-card:hover {
-    border-color: var(--border);
-    background: var(--surface-tertiary);
+    border-color: var(--accent);
+    background: var(--surface);
 }
 
-.course-card strong {
-    font-size: 1rem;
-}
-
+.course-card-topline,
+.course-card-metrics,
 .course-card-actions {
-    margin-top: 12px;
-    padding-top: 9px;
-    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.course-card-topline { color: var(--muted); font-size: 0.72rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; }
+.course-card-units { font-weight: 600; letter-spacing: 0; text-transform: none; }
+.course-card-status { color: var(--accent); }
+.course-card-status.at-risk { color: var(--danger); }
+.course-card-status.watch { color: #9a6b16; }
+.course-card-open { display: flex; min-height: 72px; margin: 12px 0 6px; padding: 0; flex-direction: column; align-items: flex-start; justify-content: center; border: 0; background: transparent; color: var(--text); text-align: left; }
+.course-card-open:hover { background: transparent; color: var(--primary); }
+.course-card-title { font-size: 1.28rem; font-weight: 800; letter-spacing: -0.02em; }
+.course-card-subtitle { margin-top: 5px; color: var(--muted); font-size: 0.84rem; }
+.course-card-metrics { justify-content: flex-start; padding: 12px 0; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+.course-card-metrics span { display: flex; min-width: 74px; flex-direction: column; gap: 2px; }
+.course-card-metrics strong { font-size: 1.02rem; }
+.course-card-metrics small { color: var(--muted); font-size: 0.7rem; }
+.course-card-actions {
+    margin-top: auto;
+    padding-top: 14px;
+    justify-content: flex-start;
+}
+.course-card-actions .button-primary { margin-right: auto; }
+.study-start-prompt { margin-top: 5px; }
+
+@media (max-width: 760px) {
+    .course-card { min-height: 0; }
+    .course-card-title { font-size: 1.16rem; }
 }
 
 .course-detail-grid {
@@ -4786,7 +4813,7 @@ body.dark-mode .course-card > div:first-child > div:last-child > div:last-child 
     margin-top: 4px;
 }
 
-#plannerPanel {
+#plannerPanel.active-panel {
     display: flex;
     flex-direction: column;
 }
@@ -4801,6 +4828,52 @@ body.dark-mode .course-card > div:first-child > div:last-child > div:last-child 
 
 #plannerPanel > .full-width-card {
     order: 2;
+}
+
+#timerCourse[hidden] {
+    display: none !important;
+}
+
+#homePanel .today-command-grid {
+    grid-column: 1 / -1;
+}
+
+#homePanel .widget-grid {
+    display: block;
+}
+
+#coursesPanel .courses-grid {
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 16px;
+}
+
+#coursesPanel .course-card {
+    min-height: 190px;
+    padding: 22px 20px;
+}
+
+#coursesPanel .course-card strong {
+    font-size: 1.2rem;
+}
+
+#coursesPanel .course-card-actions {
+    margin-top: 24px;
+    padding-top: 14px;
+}
+
+#authChangePasswordButton,
+.header-actions button[onclick="resetProfile()"] {
+    display: none !important;
+}
+
+.auth-user-label {
+    display: none !important;
+}
+
+#authLogoutButton {
+    border-color: transparent;
+    background: transparent;
+    color: var(--muted);
 }
 
 body[data-active-course]:not([data-active-course=""]) #plannerPanel #taskCourse,
@@ -4983,5 +5056,20 @@ body[data-active-course]:not([data-active-course=""]) #filesPanel #fileCourse {
         min-height: 38px;
         padding: 7px 9px;
         font-size: 0.78rem;
+    }
+}
+
+@media (max-width: 760px) {
+    .header-actions .auth-header-action,
+    .header-actions #authChangePasswordButton,
+    .header-actions #authLogoutButton,
+    .header-actions button[onclick="resetProfile()"],
+    .header-actions #pwaInstallButton,
+    .header-actions .auth-user-label {
+        display: none !important;
+    }
+
+    #homePanel .hub-intro {
+        display: none !important;
     }
 }

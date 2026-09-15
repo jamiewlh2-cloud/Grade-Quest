@@ -92,9 +92,9 @@ Date Created: March 13, 2026
 
         <div class="workspace-header">
             <div>
-                <p class="eyebrow">Today</p>
-                <h2>What matters next.</h2>
-                <p class="hero-description">One clear next step for your courses.</p>
+                <p id="workspaceEyebrow" class="eyebrow">Today</p>
+                <h2 id="workspaceTitle">What matters next.</h2>
+                <p id="workspaceDescription" class="hero-description">One clear next step for your courses.</p>
             </div>
             <div class="hero-stats">
                 <div class="hero-stat">
@@ -212,11 +212,6 @@ Date Created: March 13, 2026
         </section>
 
         <section id="coursesPanel" class="dashboard-panel">
-            <div class="workspace-context-nav" aria-label="Course workspace navigation">
-                <button class="context-nav-button button-tertiary active" onclick="setActiveTab('courses')">Overview</button>
-                <button class="context-nav-button button-tertiary" onclick="setActiveTab('grades')">Grades</button>
-                <button class="context-nav-button button-tertiary" onclick="setActiveTab('notes')">Notes</button>
-            </div>
             <div class="panel-card">
                 <div class="panel-heading">
                     <div>
@@ -293,6 +288,7 @@ Date Created: March 13, 2026
                     <div>
                         <p class="eyebrow">Study</p>
                         <h3>Start a study session.</h3>
+                        <p class="notes-line study-start-prompt">Choose a course, set a time if you want one, then press Start Session.</p>
                     </div>
                 </div>
                 <div id="studyContainer" class="study-grid"></div>
