@@ -9,7 +9,10 @@
         toast.setAttribute('role', type === 'error' ? 'alert' : 'status');
         toast.textContent = message;
         region.appendChild(toast);
-        window.setTimeout(() => toast.remove(), duration);
+        window.setTimeout(() => {
+            toast.classList.add('is-leaving');
+            window.setTimeout(() => toast.remove(), 180);
+        }, Math.max(0, duration - 180));
     }
 
     function closeDialog(result) {

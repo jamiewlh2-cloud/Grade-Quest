@@ -232,18 +232,29 @@ function updateContextNavigation(activeTab, contextView) {
     });
 }
 
-function updateWorkspaceViewState(primaryTab, targetPanelKey) {
-    document.querySelectorAll('.dashboard-panel').forEach(panel => {
-        panel.classList.remove('active-panel', 'context-view-active');
-    });
+let workspaceTransitionId = 0;
 
-    const primaryPanel = document.getElementById(`${primaryTab}Panel`);
-    const targetPanel = document.getElementById(`${targetPanelKey}Panel`);
-    if (primaryPanel) primaryPanel.classList.add('active-panel');
-    if (targetPanel && targetPanel !== primaryPanel) {
-        targetPanel.classList.add('active-panel');
-        if (primaryPanel) primaryPanel.classList.add('context-view-active');
-    }
+function updateWorkspaceViewState(primaryTab, targetPanelKey) {
+    const transitionId = ++workspaceTransitionId;
+    const currentPanels = [...document.querySelectorAll('.dashboard-panel.active-panel')];
+
+    currentPanels.forEach(panel => panel.classList.add('is-exiting'));
+
+    window.setTimeout(() => {
+        if (transitionId !== workspaceTransitionId) return;
+
+        document.querySelectorAll('.dashboard-panel').forEach(panel => {
+            panel.classList.remove('active-panel', 'context-view-active', 'is-exiting');
+        });
+
+        const primaryPanel = document.getElementById(`${primaryTab}Panel`);
+        const targetPanel = document.getElementById(`${targetPanelKey}Panel`);
+        if (primaryPanel) primaryPanel.classList.add('active-panel');
+        if (targetPanel && targetPanel !== primaryPanel) {
+            targetPanel.classList.add('active-panel');
+            if (primaryPanel) primaryPanel.classList.add('context-view-active');
+        }
+    }, 180);
 }
 
 window.closeModalWithTransition = function (overlay) {
@@ -2068,6 +2079,33 @@ function addClass() {
     }
 }
 
+async function createCourseFromCourses() {
+    const values = await showFormDialog({
+        title: 'New course',
+        message: 'Create a course workspace for your grades, tasks, resources, and notes.',
+        fields: [
+            { name: 'courseName', label: 'Course name', value: '' },
+            { name: 'units', label: 'Units', type: 'number', min: '0.1', step: '0.1', value: 3 },
+            { name: 'target', label: 'Target grade', type: 'number', min: '0', max: '100', step: '0.1', value: 80 }
+        ],
+        confirmLabel: 'Create Course'
+    });
+    if (!values) return;
+
+    const name = String(values.courseName || '').trim().toUpperCase();
+    const units = Number(values.units);
+    const target = Number(values.target);
+    if (!name || courses[name] || !Number.isFinite(units) || units <= 0 || !Number.isFinite(target) || target < 0 || target > 100) {
+        showToast(courses[name] ? 'A course with that title already exists.' : 'Enter a course name, positive units, and a target from 0 to 100.', 'error');
+        return;
+    }
+
+    courses[name] = { grades: [], target, units, metadata: { courseName: name, details: '' } };
+    save();
+    showToast(`${name} created.`, 'success');
+    window.setTimeout(() => openCourseDashboard(name), 220);
+}
+
 async function editCourse(name) {
     const course = courses[name];
     if (!course) return;
@@ -2114,11 +2152,11 @@ async function editCourse(name) {
     closeCourseDashboard();
 }
 
-function addGrade(courseName) {
-    const score = parseFloat(document.getElementById(`score-${courseName}`).value);
-    const manualWeight = parseFloat(document.getElementById(`weight-${courseName}`).value);
+function addGrade(courseName, values = null) {
+    const score = values ? Number(values.score) : parseFloat(document.getElementById(`score-${courseName}`).value);
+    const manualWeight = values ? Number(values.weight) : parseFloat(document.getElementById(`weight-${courseName}`).value);
     const assessmentSelect = document.getElementById(`assessment-${courseName}`);
-    const selectedAssessment = assessmentSelect ? assessmentSelect.value : '';
+    const selectedAssessment = values?.assessment || (assessmentSelect ? assessmentSelect.value : '');
     const outlineItems = getCourseOutline(courseName);
     let weight = manualWeight;
 
@@ -2130,9 +2168,29 @@ function addGrade(courseName) {
     }
 
     if (!isNaN(score) && !isNaN(weight)) {
-        courses[courseName].grades.push({ score, weight, assessment: selectedAssessment || null });
+        courses[courseName].grades.push({ score, weight, assessment: selectedAssessment || null, createdAt: new Date().toISOString() });
         save();
     }
+}
+
+async function addGradeFromCourse(name) {
+    const values = await showFormDialog({
+        title: `Add grade to ${name}`,
+        message: 'Record an assessment grade in this course.',
+        fields: [
+            { name: 'assessment', label: 'Assessment name', value: '' },
+            { name: 'score', label: 'Grade (%)', type: 'number', min: '0', max: '100', step: '0.1', value: '' },
+            { name: 'weight', label: 'Weight (%)', type: 'number', min: '0', max: '100', step: '0.1', value: '' }
+        ],
+        confirmLabel: 'Add Grade'
+    });
+    if (!values || !Number.isFinite(Number(values.score)) || !Number.isFinite(Number(values.weight))) {
+        if (values) showToast('Enter a valid grade and weight.', 'error');
+        return;
+    }
+    addGrade(name, values);
+    openCourseDashboard(name);
+    showToast('Grade added.', 'success');
 }
 
 function deleteGrade(courseName, idx) {
@@ -2164,6 +2222,7 @@ async function editGrade(courseName, idx) {
     }
     grade.score = Number(match[1]);
     grade.weight = Number(match[2]);
+    grade.updatedAt = new Date().toISOString();
     save();
 }
 
@@ -2269,6 +2328,7 @@ async function addStudyFile() {
 
         studyFiles.unshift({
             id: Date.now(),
+            createdAt: new Date().toISOString(),
             title,
             course: course || 'General',
             category,
@@ -2846,7 +2906,7 @@ function renderCoursesDashboard() {
 
     const courseKeys = Object.keys(courses).sort();
     if (courseKeys.length === 0) {
-        container.innerHTML = '<p class="empty-state">No courses yet. Add a class in the Grades tab.</p>';
+        container.innerHTML = '<p class="empty-state">No courses yet. Create your first course to get started.</p>';
         return;
     }
 
@@ -2918,6 +2978,255 @@ function renderFocusDashboard() {
     `;
 }
 
+let courseDetailExpandedRows = new Set();
+try {
+    courseDetailExpandedRows = new Set(JSON.parse(localStorage.getItem('courseDetailExpandedRows') || '[]'));
+} catch (error) {
+    courseDetailExpandedRows = new Set();
+}
+
+function persistCourseDetailExpandedRows() {
+    localStorage.setItem('courseDetailExpandedRows', JSON.stringify([...courseDetailExpandedRows]));
+}
+
+function courseDetailRowKey(type, name, id) {
+    return `${type}:${name}:${id}`;
+}
+
+function getCourseHealthState(course, relatedTasks) {
+    const average = computeCourseAverage(course);
+    const target = course.target || 80;
+    const overdue = relatedTasks.some(task => !task.done && task.deadline && daysBetweenFromToday(task.deadline) < 0);
+    if (overdue || (average > 0 && target - average > 5)) return { label: 'At Risk', tone: 'at-risk' };
+    if ((average > 0 && target - average > 0) || relatedTasks.some(task => !task.done && task.deadline && daysBetweenFromToday(task.deadline) <= 7)) return { label: 'Watch', tone: 'watch' };
+    return { label: 'Healthy', tone: 'healthy' };
+}
+
+function getNextCourseAssessment(course, outlineItems, relatedTasks) {
+    const candidates = outlineItems.map((item, index) => ({ name: item.name, weight: item.weight, dueDate: item.dueDate || '', key: `outline-${index}` }));
+    relatedTasks.filter(task => !task.done && task.deadline).forEach(task => {
+        const linked = task.linkedAssessment?.name || task.title;
+        const matchingGrade = (course.grades || []).find(grade => normalizeText(grade.assessment || '') === normalizeText(linked) || normalizeText(task.title).includes(normalizeText(grade.assessment || '')));
+        if (!candidates.some(item => normalizeText(item.name) === normalizeText(linked))) candidates.push({ name: matchingGrade?.assessment || linked, weight: task.linkedAssessment?.weight || matchingGrade?.weight || 0, dueDate: task.deadline, key: `task-${task.id}` });
+    });
+    return candidates.filter(item => item.dueDate).sort((a, b) => a.dueDate.localeCompare(b.dueDate))[0] || candidates.find(item => item.name) || null;
+}
+
+function toggleCourseDetailRow(button) {
+    const row = button.closest('.course-detail-row');
+    if (!row) return;
+    const expanded = row.classList.toggle('is-expanded');
+    const key = row.dataset.expandKey;
+    if (key) {
+        if (expanded) courseDetailExpandedRows.add(key);
+        else courseDetailExpandedRows.delete(key);
+        persistCourseDetailExpandedRows();
+    }
+    button.setAttribute('aria-expanded', String(expanded));
+}
+
+function buildCourseAssessmentEntries(name, course, outlineItems, relatedTasks) {
+    const entries = [];
+    const usedGradeIndexes = new Set();
+
+    outlineItems.forEach((item, outlineIndex) => {
+        const gradeIndex = (course.grades || []).findIndex((grade, index) => !usedGradeIndexes.has(index) && normalizeText(grade.assessment || '') === normalizeText(item.name));
+        if (gradeIndex >= 0) usedGradeIndexes.add(gradeIndex);
+        const grade = gradeIndex >= 0 ? course.grades[gradeIndex] : null;
+        const relatedTask = relatedTasks.find(task => task.linkedAssessment && normalizeText(task.linkedAssessment.name) === normalizeText(item.name))
+            || relatedTasks.find(task => normalizeText(task.title).includes(normalizeText(item.name)));
+        entries.push({ item, outlineIndex, grade, gradeIndex, relatedTask });
+    });
+
+    (course.grades || []).forEach((grade, gradeIndex) => {
+        if (usedGradeIndexes.has(gradeIndex)) return;
+        entries.push({
+            item: { name: grade.assessment || 'Ungrouped assessment', weight: grade.weight, dueDate: '' },
+            outlineIndex: -1,
+            grade,
+            gradeIndex,
+            relatedTask: relatedTasks.find(task => normalizeText(task.title).includes(normalizeText(grade.assessment || '')))
+        });
+    });
+
+    return entries;
+}
+
+function renderCourseAssessmentRows(name, course, outlineItems, relatedTasks) {
+    const courseArg = name.replace(/'/g, "\\'");
+    const entries = buildCourseAssessmentEntries(name, course, outlineItems, relatedTasks);
+    if (!entries.length) return '<p class="empty-state">No assessments recorded yet.</p>';
+
+    return `<div class="course-detail-list">${entries.map((entry, index) => {
+        const { item, grade, gradeIndex, outlineIndex, relatedTask } = entry;
+        const dueDate = item.dueDate || relatedTask?.deadline || 'No due date';
+        const status = grade ? 'Graded' : 'Not graded';
+        const editAction = gradeIndex >= 0 ? `editGrade('${courseArg}', ${gradeIndex})` : outlineIndex >= 0 ? `editAssessment('${courseArg}', ${outlineIndex})` : `addGradeFromCourse('${courseArg}')`;
+        const deleteAction = gradeIndex >= 0 ? `deleteGrade('${courseArg}', ${gradeIndex})` : outlineIndex >= 0 ? `deleteAssessment('${courseArg}', ${outlineIndex})` : '';
+        return `
+            <div class="course-detail-row assessment-row ${courseDetailExpandedRows.has(courseDetailRowKey('assessment', name, item.name)) ? 'is-expanded' : ''}" data-row-index="${index}" data-expand-key="${courseDetailRowKey('assessment', name, item.name)}">
+                <button class="course-detail-row-toggle" type="button" aria-expanded="${courseDetailExpandedRows.has(courseDetailRowKey('assessment', name, item.name))}" onclick="toggleCourseDetailRow(this)">
+                    <span><strong>${escapeHtml(item.name)}</strong><small>${grade ? `${grade.score}%` : 'Not graded'} • ${item.weight || 0}%</small></span>
+                    <span class="course-row-summary">${dueDate}</span>
+                </button>
+                <div class="course-detail-row-content">
+                    <dl class="course-detail-facts">
+                        <div><dt>Assessment Name</dt><dd>${escapeHtml(item.name)}</dd></div>
+                        <div><dt>Grade</dt><dd>${grade ? `${grade.score}%` : 'Not graded'}</dd></div>
+                        <div><dt>Weight</dt><dd>${item.weight || 0}%</dd></div>
+                        <div><dt>Due Date</dt><dd>${dueDate}</dd></div>
+                        <div><dt>Status</dt><dd>${status}</dd></div>
+                        <div><dt>Related Tasks</dt><dd>${relatedTask ? escapeHtml(relatedTask.title) : 'No related tasks'}</dd></div>
+                        <div><dt>Notes</dt><dd>No assessment notes</dd></div>
+                    </dl>
+                    <div class="course-detail-row-actions">
+                        <button class="button-secondary" onclick="${editAction}">Edit Assessment</button>
+                        ${deleteAction ? `<button class="button-destructive" onclick="${deleteAction}">Delete Assessment</button>` : ''}
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('')}</div>`;
+}
+
+function renderCourseTaskRows(name, relatedTasks) {
+    const courseArg = name.replace(/'/g, "\\'");
+    if (!relatedTasks.length) return '<p class="empty-state">No planner items for this course.</p>';
+    return `<div class="course-detail-list">${relatedTasks.map(task => `
+        <div class="course-detail-row task-row ${task.done ? 'is-complete' : ''} ${courseDetailExpandedRows.has(courseDetailRowKey('task', name, task.id)) ? 'is-expanded' : ''}" data-expand-key="${courseDetailRowKey('task', name, task.id)}">
+            <button class="course-detail-row-toggle" type="button" aria-expanded="${courseDetailExpandedRows.has(courseDetailRowKey('task', name, task.id))}" onclick="toggleCourseDetailRow(this)">
+                <span><strong>${escapeHtml(task.title)}</strong><small>${task.done ? 'Completed' : task.deadline ? `Due ${task.deadline}` : 'No due date'}</small></span>
+                <span class="course-row-summary">${escapeHtml(task.priority || 'Medium')}</span>
+            </button>
+            <div class="course-detail-row-content">
+                <dl class="course-detail-facts">
+                    <div><dt>Task Name</dt><dd>${escapeHtml(task.title)}</dd></div>
+                    <div><dt>Course</dt><dd>${escapeHtml(task.course || name)}</dd></div>
+                    <div><dt>Priority</dt><dd>${escapeHtml(task.priority || 'Medium')}</dd></div>
+                    <div><dt>Due Date</dt><dd>${task.deadline || 'No due date'}</dd></div>
+                    <div><dt>Notes</dt><dd>${escapeHtml(task.assignmentNotes || 'No task notes')}</dd></div>
+                    <div><dt>Linked Assessment</dt><dd>${task.linkedAssessment ? escapeHtml(task.linkedAssessment.name) : 'None'}</dd></div>
+                </dl>
+                <div class="course-detail-row-actions">
+                    <button class="button-secondary" onclick="editPlannerTask(${task.id})">Edit Task</button>
+                    <button class="button-secondary" onclick="togglePlannerTask(${task.id})">${task.done ? 'Reopen Task' : 'Complete Task'}</button>
+                    <button class="button-destructive" onclick="deletePlannerTask(${task.id})">Delete Task</button>
+                </div>
+            </div>
+        </div>
+    `).join('')}</div>`;
+}
+
+function renderCourseResourceRows(name, linkedFiles) {
+    if (!linkedFiles.length) return '<p class="empty-state">No files attached to this course.</p>';
+    return `<div class="course-detail-list">${linkedFiles.map(file => `
+        <div class="course-detail-row resource-row ${courseDetailExpandedRows.has(courseDetailRowKey('resource', name, file.id)) ? 'is-expanded' : ''}" data-expand-key="${courseDetailRowKey('resource', name, file.id)}">
+            <button class="course-detail-row-toggle" type="button" aria-expanded="${courseDetailExpandedRows.has(courseDetailRowKey('resource', name, file.id))}" onclick="toggleCourseDetailRow(this)">
+                <span><strong>${escapeHtml(file.title)}</strong><small>${escapeHtml(file.category || 'Other')}</small></span>
+                <span class="course-row-summary">Resource</span>
+            </button>
+            <div class="course-detail-row-content">
+                <dl class="course-detail-facts">
+                    <div><dt>File Information</dt><dd>${escapeHtml(file.attachment?.name || file.title)}</dd></div>
+                    <div><dt>Course</dt><dd>${escapeHtml(file.course || name)}</dd></div>
+                    <div><dt>Category</dt><dd>${escapeHtml(file.category || 'Other')}</dd></div>
+                    <div><dt>Notes</dt><dd>${escapeHtml(file.notes || 'No resource notes')}</dd></div>
+                    <div><dt>Outline Information</dt><dd>${file.outlineItems?.length ? `${file.outlineItems.length} outline items` : 'No outline information'}</dd></div>
+                </dl>
+                <div class="course-detail-row-actions">
+                    ${file.attachment ? `<a class="button-secondary" href="${file.attachment.data}" target="_blank" rel="noopener">Preview Resource</a>` : ''}
+                    <button class="button-secondary" onclick="editStudyFile(${file.id})">Edit Resource</button>
+                    <button class="button-destructive" onclick="deleteStudyFile(${file.id})">Delete Resource</button>
+                </div>
+            </div>
+        </div>
+    `).join('')}</div>`;
+}
+
+function getCourseActivity(name, course, relatedTasks, linkedFiles) {
+    const courseKey = name.toUpperCase();
+    const activity = [];
+    (course.grades || []).forEach(grade => activity.push({ label: grade.updatedAt ? `Edited grade for ${grade.assessment || 'assessment'}` : `Added grade for ${grade.assessment || 'assessment'}`, detail: `${grade.score}% • ${grade.weight}% weight`, timestamp: grade.updatedAt || grade.createdAt || null }));
+    relatedTasks.forEach(task => activity.push({ label: task.done ? `Completed ${task.title}` : `Added task ${task.title}`, detail: task.deadline ? `Due ${task.deadline}` : 'No due date', timestamp: task.done ? (task.completedAt || task.createdAt) : task.createdAt || null }));
+    linkedFiles.forEach(file => activity.push({ label: `Uploaded ${file.title}`, detail: file.category || 'Resource', timestamp: file.createdAt || file.id || null }));
+    (course.metadata?.notes || []).forEach(note => activity.push({ label: 'Added course note', detail: note.text, timestamp: note.createdAt || note.id || null }));
+    (studySessions || []).filter(session => String(session.course || '').toUpperCase() === courseKey).forEach(session => activity.push({ label: 'Finished study session', detail: `${session.durationMinutes || 0} min • ${session.type || 'General'}`, timestamp: session.endTimestamp || session.date || null }));
+    return activity.sort((a, b) => (new Date(b.timestamp || 0)).getTime() - (new Date(a.timestamp || 0)).getTime()).slice(0, 8);
+}
+
+function renderCourseActivity(name, course, relatedTasks, linkedFiles) {
+    const activity = getCourseActivity(name, course, relatedTasks, linkedFiles);
+    if (!activity.length) return '<p class="empty-state">Activity will appear here as you work in this course.</p>';
+    return `<div class="course-activity-list">${activity.map(item => `
+        <div class="course-activity-item">
+            <span class="course-activity-dot" aria-hidden="true"></span>
+            <div><strong>${escapeHtml(item.label)}</strong><p>${escapeHtml(item.detail)}</p></div>
+        </div>
+    `).join('')}</div>`;
+}
+
+function startStudyFromCourse(name) {
+    setActiveTab('study');
+    window.setTimeout(() => {
+        const courseSelect = document.getElementById('timerCourse') || document.getElementById('stopwatchCourse');
+        if (courseSelect) {
+            courseSelect.value = name;
+            if (courseSelect.id === 'timerCourse') updateTimerMetadata();
+            else updateStopwatchMetadata();
+        }
+    }, 240);
+}
+
+async function editCourseNote(name, noteId) {
+    const note = (courses[name]?.metadata?.notes || []).find(item => item.id === noteId);
+    if (!note) return;
+    const value = await showTextDialog({ title: `Edit note for ${name}`, message: 'Update this course note.', value: note.text, confirmLabel: 'Save Note' });
+    const text = String(value || '').trim();
+    if (!text) return;
+    note.text = text;
+    note.updatedAt = new Date().toISOString();
+    save();
+    openCourseDashboard(name);
+    showToast('Note updated.', 'success');
+}
+
+function startInlineCourseNoteEdit(name, noteId) {
+    const note = (courses[name]?.metadata?.notes || []).find(item => item.id === noteId);
+    const item = document.querySelector(`.course-note-item[data-note-id="${noteId}"]`);
+    if (!note || !item || item.classList.contains('is-editing')) return;
+    item.classList.add('is-editing');
+    item.innerHTML = `
+        <textarea class="course-note-inline-input" rows="3">${escapeHtml(note.text)}</textarea>
+        <div class="course-detail-row-actions">
+            <button class="button-primary" onclick="saveInlineCourseNote('${name.replace(/'/g, "\\'")}', ${noteId})">Save Note</button>
+            <button class="button-secondary" onclick="openCourseDashboard('${name.replace(/'/g, "\\'")}')">Cancel</button>
+        </div>
+    `;
+    item.querySelector('textarea')?.focus();
+}
+
+function saveInlineCourseNote(name, noteId) {
+    const item = document.querySelector(`.course-note-item[data-note-id="${noteId}"]`);
+    const note = (courses[name]?.metadata?.notes || []).find(entry => entry.id === noteId);
+    const text = item?.querySelector('textarea')?.value.trim();
+    if (!note || !text) return;
+    note.text = text;
+    note.updatedAt = new Date().toISOString();
+    save();
+    openCourseDashboard(name);
+    showToast('Note updated.', 'success');
+}
+
+async function deleteCourseNote(name, noteId) {
+    const confirmed = await showConfirmDialog({ title: 'Delete course note?', message: 'This removes the note from this course.', confirmLabel: 'Delete Note', danger: true });
+    if (!confirmed) return;
+    const course = courses[name];
+    course.metadata.notes = (course.metadata?.notes || []).filter(note => note.id !== noteId);
+    save();
+    openCourseDashboard(name);
+    showToast('Note deleted.', 'success');
+}
+
 function openCourseDashboard(name) {
     const panel = document.getElementById('coursesPanel');
     if (!panel) return;
@@ -2939,12 +3248,20 @@ function openCourseDashboard(name) {
     const totalAssessments = (course.grades || []).length;
     const assessmentsRemaining = outlineItems.length - totalAssessments;
     const estimatedFinal = totalWeight > 0 ? ((totalWeighted + (currentAvg * remainingWeight/100)).toFixed(1)) : '—';
+    const nextCourseTask = relatedTasks.filter(task => !task.done && task.deadline).sort((a, b) => a.deadline.localeCompare(b.deadline))[0];
+    const overdueCourseTask = relatedTasks.find(task => !task.done && task.deadline && daysBetweenFromToday(task.deadline) < 0);
+    const attentionMessage = overdueCourseTask ? `Overdue: ${overdueCourseTask.title}` : currentAvg && currentAvg < (course.target || 80) ? 'Current average is below target' : 'On track';
+    const courseNotes = course.metadata?.notes || [];
+    const courseActivity = renderCourseActivity(name, course, relatedTasks, linkedFiles);
+    const nextAssessment = getNextCourseAssessment(course, outlineItems, relatedTasks);
+    const courseHealth = getCourseHealthState(course, relatedTasks);
+    const recommendedAction = overdueCourseTask ? 'Complete the overdue task.' : nextAssessment?.dueDate ? `Prepare for ${nextAssessment.name}.` : 'Add an assessment to establish your next milestone.';
 
     panel.querySelector('.panel-card').innerHTML = `
         <div class="panel-heading">
             <div>
                 <p class="eyebrow">Course Dashboard</p>
-                <h3>${name}</h3>
+                <h3>${name} <span class="course-health-badge ${courseHealth.tone}">${courseHealth.label}</span></h3>
             </div>
             <div style="display:flex; gap:8px; align-items:center;">
                 <button class="button-tertiary" onclick="editCourse('${name.replace(/'/g, "\\'")}')">Edit Course</button>
@@ -2954,73 +3271,68 @@ function openCourseDashboard(name) {
         </div>
         <div class="course-detail-grid">
             <div class="panel-card">
+                <div class="course-priority-block">
+                    <div>
+                        <p class="eyebrow">Next Assessment</p>
+                        <h3>${nextAssessment ? escapeHtml(nextAssessment.name) : 'Nothing scheduled'}</h3>
+                    </div>
+                    <div class="course-priority-facts">
+                        <span><strong>${nextAssessment?.weight || 0}%</strong><small>Weight</small></span>
+                        <span><strong>${nextAssessment?.dueDate || 'No due date'}</strong><small>Due date</small></span>
+                        <span><strong>${escapeHtml(recommendedAction)}</strong><small>Recommended action</small></span>
+                    </div>
+                </div>
                 <h3>Overview</h3>
                 ${course.metadata?.details ? `<p><strong>Details:</strong> ${course.metadata.details}</p>` : ''}
                 <p><strong>Current average:</strong> ${currentAvg ? currentAvg.toFixed(1) + '%' : '—'}</p>
                 <p><strong>Target:</strong> ${course.target || '—'}%</p>
                 <p><strong>Remaining weight:</strong> ${remainingWeight}%</p>
-                <p><strong>Upcoming assignments:</strong> ${relatedTasks.filter(t=>t.deadline && !t.done).length}</p>
-            </div>
-
-            <div class="panel-card">
-                <h3>Grades</h3>
-                <div>
-                    ${(course.grades || []).length === 0 ? '<p class="empty-state">No grades recorded.</p>' : `
-                        <div class="grade-list">
-                            ${(course.grades || []).map(g => `
-                                <div class="grade-row">
-                                    <div><strong>${g.score}%</strong> <small>${g.assessment ? g.assessment : ''}</small></div>
-                                    <div><small>${g.weight}%</small></div>
-                                </div>
-                            `).join('')}
-                        </div>
-                    `}
+                <p><strong>Due next:</strong> ${nextCourseTask ? `${escapeHtml(nextCourseTask.title)} • ${nextCourseTask.deadline}` : 'Nothing scheduled'}</p>
+                <p><strong>Needs attention:</strong> ${escapeHtml(attentionMessage)}</p>
+                <p><strong>Next action:</strong> ${nextCourseTask ? 'Open Tasks and prepare for the next deadline.' : 'Add an assessment or task to plan this course.'}</p>
+                <div class="course-overview-actions">
+                    ${!outlineItems.length && !(course.grades || []).length ? `<button class="button-secondary" onclick="addGradeFromCourse('${name.replace(/'/g, "\\'")}')">Add Assessment</button>` : ''}
+                    ${!relatedTasks.length ? `<button class="button-secondary" onclick="addTaskFromCourse('${name.replace(/'/g, "\\'")}')">Add Task</button>` : ''}
+                    ${!linkedFiles.length ? `<button class="button-secondary" onclick="addResourceFromCourse('${name.replace(/'/g, "\\'")}')">Upload Resource</button>` : ''}
+                    ${!studySessions.some(session => String(session.course || '').toUpperCase() === name.toUpperCase()) ? `<button class="button-secondary" onclick="startStudyFromCourse('${name.replace(/'/g, "\\'")}')">Start Study Session</button>` : ''}
                 </div>
             </div>
 
             <div class="panel-card">
-                <h3>Course Files</h3>
-                ${linkedFiles.length === 0 ? '<p class="empty-state">No files attached to this course.</p>' : `
-                    <div class="resource-list">
-                        ${linkedFiles.map(f => `
-                            <div class="resource-item">
-                                <div>
-                                    <strong>${f.title}</strong>
-                                    <p>${f.category}</p>
-                                    ${f.attachment ? (f.attachment.type.startsWith('image/') ? `<img src="${f.attachment.data}" style="max-width:100%; border-radius:8px;" />` : `<a class="resource-link" href="${f.attachment.data}" target="_blank">Open</a>`) : ''}
-                                </div>
-                            </div>
-                        `).join('')}
-                    </div>
-                `}
+                <div class="course-section-heading"><h3>Assessments</h3><button class="button-primary" onclick="addGradeFromCourse('${name.replace(/'/g, "\\'")}')">Add Grade</button></div>
+                ${renderCourseAssessmentRows(name, course, outlineItems, relatedTasks)}
             </div>
 
             <div class="panel-card">
-                <h3>Planner</h3>
-                ${relatedTasks.length === 0 ? '<p class="empty-state">No planner items for this course.</p>' : `
-                    <div class="task-list">
-                        ${relatedTasks.map(t => `
-                            <div class="task-item ${t.done ? 'done' : ''}">
-                                <div><strong>${t.title}</strong><p>${t.deadline || 'No deadline'} • ${t.priority}</p></div>
-                                <div style="display:flex; gap:6px;"><button class="button-tertiary" onclick="togglePlannerTask(${t.id})">✓</button></div>
-                            </div>
-                        `).join('')}
-                    </div>
-                `}
+                <div class="course-section-heading"><h3>Resources</h3><button class="button-primary" onclick="addResourceFromCourse('${name.replace(/'/g, "\\'")}')">Add Resource</button></div>
+                ${renderCourseResourceRows(name, linkedFiles)}
             </div>
 
             <div class="panel-card">
-                <h3>Course Outline</h3>
+                <div class="course-section-heading"><h3>Tasks</h3><button class="button-primary" onclick="addTaskFromCourse('${name.replace(/'/g, "\\'")}')">Add Task</button></div>
+                ${renderCourseTaskRows(name, relatedTasks)}
+            </div>
+
+            <div class="panel-card">
+                <div class="course-section-heading"><h3>Course Outline</h3></div>
                 ${outlineItems.length === 0 ? '<p class="empty-state">No outline imported.</p>' : `
                     ${outlineItems.map(it => `<div class="outline-chip">${it.name} — ${it.weight}%${it.dueDate ? ` • due ${it.dueDate}` : ''}</div>`).join('')}
                 `}
             </div>
 
-            <div class="panel-card">
-                <h3>Quick Stats</h3>
-                <p><strong>Total assessments completed:</strong> ${totalAssessments}</p>
-                <p><strong>Total assessments remaining:</strong> ${assessmentsRemaining > 0 ? assessmentsRemaining : 0}</p>
-                <p><strong>Estimated final grade:</strong> ${estimatedFinal}</p>
+            <div class="panel-card course-notes-section">
+                <div class="course-section-heading"><h3>Notes</h3><button class="button-primary" onclick="addNoteFromCourse('${name.replace(/'/g, "\\'")}')">Add Note</button></div>
+                ${courseNotes.length ? `<div class="course-notes-list">${courseNotes.map(note => `<div class="course-note-item" data-note-id="${note.id}"><p>${escapeHtml(note.text)}</p><div class="course-detail-row-actions"><button class="button-secondary" onclick="startInlineCourseNoteEdit('${name.replace(/'/g, "\\'")}', ${note.id})">Edit Note</button><button class="button-destructive" onclick="deleteCourseNote('${name.replace(/'/g, "\\'")}', ${note.id})">Delete Note</button></div></div>`).join('')}</div>` : '<p class="empty-state">No course notes yet. Add a note to keep context with this course.</p>'}
+            </div>
+
+            <div class="panel-card course-study-section">
+                <div class="course-section-heading"><h3>Study Activity</h3><button class="button-primary" onclick="startStudyFromCourse('${name.replace(/'/g, "\\'")}')">Start Study Session</button></div>
+                ${(() => { const sessions = studySessions.filter(session => String(session.course || '').toUpperCase() === name.toUpperCase()).slice(0, 5); return sessions.length ? `<div class="course-study-list">${sessions.map(session => `<div class="course-study-item"><strong>${session.durationMinutes || 0} min</strong><span>${escapeHtml(session.type || 'General')}</span><small>${session.date || 'Unknown date'}</small></div>`).join('')}</div>` : '<p class="empty-state">No study sessions for this course yet.</p>'; })()}
+            </div>
+
+            <div class="panel-card course-activity-section">
+                <div class="course-section-heading"><h3>Recent Activity</h3></div>
+                ${courseActivity}
             </div>
 
             <div class="panel-card course-settings-card">
@@ -3077,7 +3389,9 @@ function createDefaultStudyTimerState() {
             status: 'idle',
             accumulatedSeconds: 0,
             startTimestamp: null,
-            sessionStartTimestamp: null
+            sessionStartTimestamp: null,
+            course: '',
+            type: ''
         }
     };
 }
@@ -3266,19 +3580,35 @@ function renderStudyCenter() {
                         <button class="button-primary" onclick="startTimer()">Start</button>
                         <button class="button-primary" onclick="pauseTimer()">Pause</button>
                         <button class="button-primary" onclick="resumeTimer()">Resume</button>
-                        <button class="button-primary" onclick="completeTimerSession()">Done</button>
+                        <button class="button-primary" onclick="completeTimerSession()">Save Session</button>
                         <button class="button-secondary" onclick="resetTimer()">Reset</button>
                     </div>
                 </div>
             </div>` : `
             <h3>Stopwatch</h3>
+            <div class="panel-form study-session-config">
+                <label>Course</label>
+                <select id="stopwatchCourse" onchange="updateStopwatchMetadata()">
+                    <option value="">Select course</option>
+                    ${courseOptions.map(c => `<option value="${c}" ${studyTimerState.stopwatch.course === c ? 'selected' : ''}>${c}</option>`).join('')}
+                </select>
+                <label>Study type (optional)</label>
+                <select id="stopwatchType" onchange="updateStopwatchMetadata()">
+                    <option value="" ${!studyTimerState.stopwatch.type ? 'selected' : ''}>General</option>
+                    <option ${studyTimerState.stopwatch.type === 'Reading' ? 'selected' : ''}>Reading</option>
+                    <option ${studyTimerState.stopwatch.type === 'Flashcards' ? 'selected' : ''}>Flashcards</option>
+                    <option ${studyTimerState.stopwatch.type === 'Assignment' ? 'selected' : ''}>Assignment</option>
+                    <option ${studyTimerState.stopwatch.type === 'Review' ? 'selected' : ''}>Review</option>
+                    <option ${studyTimerState.stopwatch.type === 'Practice Problems' ? 'selected' : ''}>Practice Problems</option>
+                </select>
+            </div>
             <div class="study-timer-row">
                 <div class="study-timer-display"><span id="stopwatchDisplay">00:00:00</span></div>
                 <div class="study-timer-actions">
                     <button class="button-primary" onclick="startStopwatch()">Start</button>
                     <button class="button-primary" onclick="pauseStopwatch()">Pause</button>
                     <button class="button-primary" onclick="resumeStopwatch()">Resume</button>
-                    <button class="button-primary" onclick="stopStopwatch()">Stop &amp; Save</button>
+                    <button class="button-primary" onclick="stopStopwatch()">Save Session</button>
                     <button class="button-secondary" onclick="resetStopwatch()">Reset</button>
                 </div>
             </div>`}
@@ -3309,6 +3639,14 @@ function updateTimerMetadata() {
     const type = document.getElementById('timerType');
     if (course) studyTimerState.timer.course = course.value;
     if (type) studyTimerState.timer.type = type.value;
+    saveStudyTimerState();
+}
+
+function updateStopwatchMetadata() {
+    const course = document.getElementById('stopwatchCourse');
+    const type = document.getElementById('stopwatchType');
+    if (course) studyTimerState.stopwatch.course = course.value;
+    if (type) studyTimerState.stopwatch.type = type.value;
     saveStudyTimerState();
 }
 
@@ -3436,6 +3774,8 @@ function updateStopwatchDisplay() {
 function startStopwatch() {
     const stopwatch = studyTimerState.stopwatch;
     if (stopwatch.status === 'running') return;
+    updateStopwatchMetadata();
+    if (!stopwatch.course) { showToast('Please select a course before starting.', 'error'); return; }
     stopwatch.status = 'running';
     stopwatch.accumulatedSeconds = 0;
     stopwatch.startTimestamp = Date.now();
@@ -3479,14 +3819,16 @@ function stopStopwatch() {
         endTimestamp,
         durationSeconds,
         timerType: 'stopwatch',
-        type: 'Stopwatch'
+        course: stopwatch.course,
+        type: stopwatch.type || 'Stopwatch'
     });
     showToast('Stopwatch session saved.', 'success');
     updateStopwatchDisplay();
 }
 
 function resetStopwatch() {
-    studyTimerState.stopwatch = { status: 'idle', accumulatedSeconds: 0, startTimestamp: null, sessionStartTimestamp: null };
+    const { course, type } = studyTimerState.stopwatch;
+    studyTimerState.stopwatch = { status: 'idle', accumulatedSeconds: 0, startTimestamp: null, sessionStartTimestamp: null, course, type };
     saveStudyTimerState();
     updateStopwatchDisplay();
 }
@@ -4614,4 +4956,86 @@ async function deleteAssessment(course, index) {
     if (!courseOutlines[course].length) delete courseOutlines[course];
     saveStudyData();
     render();
+}
+
+async function addResourceFromCourse(name) {
+    const values = await showFormDialog({
+        title: `Add resource to ${name}`,
+        message: 'Choose a file and keep its course context attached.',
+        fields: [
+            { name: 'title', label: 'Resource name', value: '' },
+            { name: 'category', label: 'Category', value: 'Other' },
+            { name: 'notes', label: 'Notes', type: 'textarea', value: '' }
+        ],
+        confirmLabel: 'Choose File'
+    });
+    if (!values) return;
+    const courseInput = document.getElementById('fileCourse');
+    if (courseInput) courseInput.value = name;
+    const titleInput = document.getElementById('fileTitle');
+    const categoryInput = document.getElementById('fileCategory');
+    const notesInput = document.getElementById('fileNotes');
+    if (titleInput) titleInput.value = String(values.title || '').trim();
+    if (categoryInput) categoryInput.value = values.category || 'Other';
+    if (notesInput) notesInput.value = String(values.notes || '').trim();
+    const fileInput = document.getElementById('resourceUpload');
+    if (fileInput) {
+        fileInput.dataset.courseContext = name;
+        fileInput.click();
+        fileInput.onchange = async () => {
+            await addStudyFile();
+            delete fileInput.dataset.courseContext;
+            openCourseDashboard(name);
+            showToast('Resource added.', 'success');
+        };
+    }
+}
+
+async function addTaskFromCourse(name) {
+    const values = await showFormDialog({
+        title: `Add task to ${name}`,
+        message: 'Create a planner task in this course.',
+        fields: [
+            { name: 'title', label: 'Task name', value: '' },
+            { name: 'deadline', label: 'Due date', type: 'date', value: '' },
+            { name: 'priority', label: 'Priority', value: 'Medium' }
+        ],
+        confirmLabel: 'Add Task'
+    });
+    if (!values || !String(values.title || '').trim()) {
+        if (values) showToast('Enter a task name.', 'error');
+        return;
+    }
+    const courseCode = name.toUpperCase();
+    const linkedAssessment = findLinkedAssessment(courseCode, values.title);
+    plannerTasks.unshift({
+        id: Date.now(),
+        title: String(values.title).trim(),
+        course: name,
+        deadline: values.deadline || '',
+        priority: values.priority || 'Medium',
+        done: false,
+        createdAt: new Date().toISOString(),
+        linkedAssessment: linkedAssessment ? { name: linkedAssessment.name, weight: linkedAssessment.weight } : null
+    });
+    saveStudyData();
+    render();
+    window.setTimeout(() => openCourseDashboard(name), 220);
+    showToast('Task added.', 'success');
+}
+
+async function addNoteFromCourse(name) {
+    const values = await showTextDialog({
+        title: `Add note to ${name}`,
+        message: 'Write a note for this course.',
+        value: '',
+        confirmLabel: 'Add Note'
+    });
+    const note = String(values || '').trim();
+    if (!note) return;
+    const course = courses[name];
+    course.metadata = { ...(course.metadata || {}), notes: [...(course.metadata?.notes || []), { id: Date.now(), text: note, createdAt: new Date().toISOString() }] };
+    save();
+    openCourseDashboard(name);
+    showToast('Note added.', 'success');
 }
