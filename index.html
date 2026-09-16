@@ -112,7 +112,8 @@ Date Created: March 13, 2026
             </div>
         </div>
 
-        <div class="tab-nav" aria-label="Primary navigation">
+        <button id="mobileNavToggle" class="mobile-nav-toggle" type="button" aria-controls="primaryNavigation" aria-expanded="false" onclick="toggleMobileNavigation()">☰ <span>Menu</span></button>
+        <div id="primaryNavigation" class="tab-nav" aria-label="Primary navigation">
             <div class="nav-section-label">Workspace</div>
             <button class="primary-nav-button button-tertiary active" data-tab="home" onclick="setActiveTab('home')">Today</button>
             <button class="primary-nav-button button-tertiary" data-tab="courses" onclick="setActiveTab('courses')">Courses</button>
@@ -340,7 +341,10 @@ Date Created: March 13, 2026
                         <p class="eyebrow">Resources</p>
                         <h3>Course materials</h3>
                     </div>
-                    <button class="button-primary" onclick="toggleWorkspaceForm('filesResourceForm', this)">Add Resource</button>
+                    <div class="resource-header-actions">
+                        <input id="resourceSearch" type="search" placeholder="Find course materials" oninput="window.resourceQuery=this.value; renderFiles()">
+                        <button class="button-primary" onclick="toggleWorkspaceForm('filesResourceForm', this)">Add Resource</button>
+                    </div>
                 </div>
                 <div id="filesResourceForm" class="panel-form workspace-form" hidden>
                     <input type="text" id="fileTitle" placeholder="Resource name (optional)">
@@ -374,7 +378,7 @@ Date Created: March 13, 2026
                 <button class="context-nav-button button-tertiary active" onclick="setActiveTab('planner')">List and calendar</button>
                 <button class="context-nav-button button-tertiary" onclick="setActiveTab('assignments')">Assessments</button>
             </div>
-            <div class="panel-card full-width-card">
+            <div class="panel-card full-width-card planner-calendar-card">
                 <div class="panel-heading calendar-header">
                     <div>
                         <p class="eyebrow">Planner</p>
@@ -396,7 +400,7 @@ Date Created: March 13, 2026
                 <div id="calendarContainer" class="calendar-month-view"></div>
                 <div id="calendarEventsList" class="calendar-events-list"></div>
             </div>
-            <div class="panel-card">
+            <div class="panel-card planner-work-card">
                 <div class="panel-heading">
                     <div>
                         <p class="eyebrow">Planner</p>

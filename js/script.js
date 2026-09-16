@@ -341,6 +341,7 @@ function setActiveTab(tab, contextView = '') {
     if (description) description.textContent = workspaceCopy[2];
 
     const primaryPanel = document.getElementById(`${primaryTab}Panel`);
+    closeMobileNavigation();
     if (primaryPanel) {
         window.requestAnimationFrame(() => {
             window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
@@ -1585,6 +1586,11 @@ function renderWeeklyReviewDashboard() {
                 </div>
             </div>
 
+            <div class="progress-next-action">
+                <div><p class="eyebrow">Next step</p><strong>${progressAction.label}</strong></div>
+                <button class="button-primary" onclick="setActiveTab('${progressAction.target}')">Open</button>
+            </div>
+
             <div class="weekly-summary-grid">
                 <div class="weekly-stat-card">
                     <span class="eyebrow">Study Hours</span>
@@ -1616,11 +1622,6 @@ function renderWeeklyReviewDashboard() {
                     <strong>${gpaChange !== null ? (gpaChange > 0 ? '+' : '') + gpaChange.toFixed(2) : 'N/A'}</strong>
                     <div class="notes-line">From last week</div>
                 </div>
-            </div>
-
-            <div class="progress-next-action">
-                <div><p class="eyebrow">Next step</p><strong>${progressAction.label}</strong></div>
-                <button class="button-primary" onclick="setActiveTab('${progressAction.target}')">Open</button>
             </div>
 
             <div class="weekly-section">
@@ -2640,7 +2641,9 @@ function renderFiles() {
         return;
     }
 
-    list.innerHTML = studyFiles.map(file => `
+    const query = String(window.resourceQuery || '').trim().toLowerCase();
+    const visibleFiles = studyFiles.filter(file => !query || [file.title, file.course, file.category, file.notes].some(value => String(value || '').toLowerCase().includes(query)));
+    list.innerHTML = visibleFiles.length ? visibleFiles.map(file => `
         <div class="resource-item workspace-row">
             <div>
                 <strong>${file.title}</strong>
@@ -2658,7 +2661,7 @@ function renderFiles() {
                 <button class="button-destructive" onclick="deleteStudyFile(${file.id})">Delete</button>
             </div>
         </div>
-    `).join('');
+    `).join('') : '<div class="workspace-empty-state"><strong>No matching materials.</strong><span>Try a course, lecture, assignment, or resource name.</span></div>';
 }
 
 function renderOutlinePreview() {
@@ -2700,7 +2703,9 @@ function renderPlanner() {
         </div>
     `).join('') : '<p class="empty-state">No upcoming deadlines yet.</p>';
 
-    list.innerHTML = plannerTasks.map(task => `
+    const activeTasks = plannerTasks.filter(task => !task.done);
+    const completedTasks = plannerTasks.filter(task => task.done);
+    const renderTask = task => `
         <div class="task-item workspace-row ${task.done ? 'done' : ''}">
             <div>
                 <strong>${task.title}</strong>
@@ -2712,7 +2717,14 @@ function renderPlanner() {
                 <button class="button-destructive" onclick="deletePlannerTask(${task.id})">Delete</button>
             </div>
         </div>
-    `).join('');
+    `;
+    list.innerHTML = `
+        <div class="planner-active-work">
+            <div class="planner-list-heading"><strong>Active work</strong><span>${activeTasks.length}</span></div>
+            ${activeTasks.length ? activeTasks.map(renderTask).join('') : '<p class="empty-state">Nothing active. You are caught up.</p>'}
+        </div>
+        ${completedTasks.length ? `<details class="planner-completed-work"><summary>Completed (${completedTasks.length})</summary><div>${completedTasks.map(renderTask).join('')}</div></details>` : ''}
+    `;
 }
 
 async function editPlannerTask(id) {
@@ -3025,13 +3037,7 @@ function renderCoursesDashboard() {
                     <span class="course-card-title">${name}</span>
                     <span class="course-card-subtitle">${nextTask ? `Next: ${escapeHtml(nextTask.title)}` : 'No next task set'}</span>
                 </button>
-                <div class="course-card-metrics">
-                    <span><strong>${currentAvg}%</strong><small>Current</small></span>
-                    <span><strong>${target}%</strong><small>Target</small></span>
-                    <span><strong>${upcomingTasks}</strong><small>Upcoming</small></span>
-                </div>
                 <div class="course-card-actions">
-                    <button class="button-primary" onclick="openCourseDashboard('${name.replace(/'/g, "\\'")}')">Open course</button>
                     <button class="button-tertiary" onclick="editCourse('${name.replace(/'/g, "\\'")}')">Edit</button>
                     <button class="button-destructive" onclick="deleteClass('${name.replace(/'/g, "\\'")}')">Delete</button>
                 </div>
@@ -3077,14 +3083,9 @@ function renderFocusDashboard() {
 }
 
 let courseDetailExpandedRows = new Set();
-try {
-    courseDetailExpandedRows = new Set(JSON.parse(localStorage.getItem('courseDetailExpandedRows') || '[]'));
-} catch (error) {
-    courseDetailExpandedRows = new Set();
-}
 
 function persistCourseDetailExpandedRows() {
-    localStorage.setItem('courseDetailExpandedRows', JSON.stringify([...courseDetailExpandedRows]));
+    return courseDetailExpandedRows;
 }
 
 function courseDetailRowKey(type, name, id) {
@@ -3134,6 +3135,14 @@ function toggleCourseDetailRow(button) {
         else courseDetailExpandedRows.delete(key);
         persistCourseDetailExpandedRows();
     }
+    button.setAttribute('aria-expanded', String(expanded));
+}
+
+function toggleCourseSecondary(button) {
+    const panel = button.closest('.course-detail-shell');
+    if (!panel) return;
+    const expanded = panel.classList.toggle('secondary-visible');
+    button.textContent = expanded ? 'Hide course details' : 'Show course details';
     button.setAttribute('aria-expanded', String(expanded));
 }
 
@@ -3346,6 +3355,7 @@ function openCourseDashboard(name) {
     const course = courses[name];
     if (!course) return;
     activeCourseName = name;
+    courseDetailExpandedRows = new Set();
     const overviewCard = panel.querySelector('.panel-card');
     if (overviewCard && !courseOverviewMarkup) courseOverviewMarkup = overviewCard.innerHTML;
 
@@ -3380,6 +3390,7 @@ function openCourseDashboard(name) {
                 <button class="button-secondary" onclick="closeCourseDashboard()">← Back</button>
             </div>
         </div>
+        <div class="course-detail-shell">
         <div class="course-detail-grid">
             <div class="panel-card">
                 <div class="course-priority-block">
@@ -3414,7 +3425,7 @@ function openCourseDashboard(name) {
                 ${renderCourseAssessmentRows(name, course, outlineItems, relatedTasks)}
             </div>
 
-            <div class="panel-card">
+            <div class="panel-card course-secondary-card">
                 <div class="course-section-heading"><h3>Resources</h3><button class="button-secondary" onclick="addResourceFromCourse('${name.replace(/'/g, "\\'")}')">Add Resource</button></div>
                 ${renderCourseResourceRows(name, linkedFiles)}
             </div>
@@ -3424,29 +3435,29 @@ function openCourseDashboard(name) {
                 ${renderCourseTaskRows(name, relatedTasks)}
             </div>
 
-            <div class="panel-card">
+            <div class="panel-card course-secondary-card">
                 <div class="course-section-heading"><h3>Course Outline</h3></div>
                 ${outlineItems.length === 0 ? '<p class="empty-state">No outline imported.</p>' : `
                     ${outlineItems.map(it => `<div class="outline-chip">${it.name} — ${it.weight}%${it.dueDate ? ` • due ${it.dueDate}` : ''}</div>`).join('')}
                 `}
             </div>
 
-            <div class="panel-card course-notes-section">
+            <div class="panel-card course-secondary-card course-notes-section">
                 <div class="course-section-heading"><h3>Notes</h3><button class="button-secondary" onclick="addNoteFromCourse('${name.replace(/'/g, "\\'")}')">Add Note</button></div>
                 ${courseNotes.length ? `<div class="course-notes-list">${courseNotes.map(note => `<div class="course-note-item" data-note-id="${note.id}"><p>${escapeHtml(note.text)}</p><div class="course-detail-row-actions"><button class="button-secondary" onclick="startInlineCourseNoteEdit('${name.replace(/'/g, "\\'")}', ${note.id})">Edit Note</button><button class="button-destructive" onclick="deleteCourseNote('${name.replace(/'/g, "\\'")}', ${note.id})">Delete Note</button></div></div>`).join('')}</div>` : `<div class="workspace-empty-state"><strong>No notes yet.</strong><span>Keep a reminder with this course.</span><button class="button-primary" onclick="addNoteFromCourse('${name.replace(/'/g, "\\'")}')">Add Note</button></div>`}
             </div>
 
-            <div class="panel-card course-study-section">
+            <div class="panel-card course-secondary-card course-study-section">
                 <div class="course-section-heading"><h3>Study Activity</h3></div>
                 ${(() => { const sessions = studySessions.filter(session => String(session.course || '').toUpperCase() === name.toUpperCase()).slice(0, 5); return sessions.length ? `<div class="course-study-list">${sessions.map(session => `<div class="course-study-item"><strong>${session.durationMinutes || 0} min</strong><span>${escapeHtml(session.type || 'General')}</span><small>${session.date || 'Unknown date'}</small></div>`).join('')}</div>` : '<p class="empty-state">No study sessions for this course yet.</p>'; })()}
             </div>
 
-            <div class="panel-card course-activity-section">
+            <div class="panel-card course-secondary-card course-activity-section">
                 <div class="course-section-heading"><h3>Recent Activity</h3></div>
                 ${courseActivity}
             </div>
 
-            <div class="panel-card course-settings-card">
+            <div class="panel-card course-secondary-card course-settings-card">
                 <h3>Course details</h3>
                 <div class="course-settings-details">
                     <div><span>Course Name</span><strong>${course.metadata?.courseName || name}</strong></div>
@@ -3459,6 +3470,8 @@ function openCourseDashboard(name) {
                     <button class="button-destructive" onclick="deleteClass('${name.replace(/'/g, "\\'")}')">Delete Course</button>
                 </div>
             </div>
+        </div>
+        <button class="button-secondary course-secondary-toggle" type="button" aria-expanded="false" onclick="toggleCourseSecondary(this)">Show course details</button>
         </div>
     `;
 }
@@ -3481,7 +3494,7 @@ let timerRunning = false;
 let timerModeSeconds = 0;
 let studyTimerState = createDefaultStudyTimerState();
 
-function createDefaultStudyTimerState() {
+function legacyCreateDefaultStudyTimerState() {
     return {
         activeMode: 'timer',
         timer: {
@@ -3507,7 +3520,7 @@ function createDefaultStudyTimerState() {
     };
 }
 
-function loadStudyTimerState() {
+function legacyLoadStudyTimerState() {
     const saved = GradeQuestStorage.getJson('studyTimerState', null);
     const defaults = createDefaultStudyTimerState();
     studyTimerState = {
@@ -3524,7 +3537,7 @@ function loadStudyTimerState() {
     syncTimerGlobals();
 }
 
-function resetStudyTimerState() {
+function legacyResetStudyTimerState() {
     studyTimerState = createDefaultStudyTimerState();
     timerModeSeconds = 0;
     timerRemaining = 0;
@@ -3540,7 +3553,7 @@ function saveStudyTimerState() {
     }
 }
 
-function syncTimerGlobals() {
+function legacySyncTimerGlobals() {
     const timer = studyTimerState.timer;
     timerModeSeconds = timer.durationSeconds || 0;
     timerRemaining = getTimerRemainingSeconds();
@@ -3548,7 +3561,7 @@ function syncTimerGlobals() {
     timerRunning = timer.status === 'running';
 }
 
-function getTimerRemainingSeconds(now = Date.now()) {
+function legacyGetTimerRemainingSeconds(now = Date.now()) {
     const timer = studyTimerState.timer;
     if (timer.status === 'running' && timer.endTimestamp) {
         return Math.max(0, Math.ceil((timer.endTimestamp - now) / 1000));
@@ -3564,7 +3577,7 @@ function getStopwatchElapsedSeconds(now = Date.now()) {
     return Math.max(0, stopwatch.accumulatedSeconds || 0);
 }
 
-function getTimerElapsedSeconds(now = Date.now()) {
+function legacyGetTimerElapsedSeconds(now = Date.now()) {
     const timer = studyTimerState.timer;
     if (timer.status === 'running' && timer.sessionStartTimestamp) {
         const elapsed = Math.max(0, Math.floor((now - timer.sessionStartTimestamp) / 1000));
@@ -3573,7 +3586,7 @@ function getTimerElapsedSeconds(now = Date.now()) {
     return Math.max(0, timer.elapsedSeconds || 0);
 }
 
-function reconcileStudyTimerState() {
+function legacyReconcileStudyTimerState() {
     const timer = studyTimerState.timer;
     if (timer.status !== 'running') {
         syncTimerGlobals();
@@ -3655,7 +3668,7 @@ function formatStopwatchTime(seconds) {
     return `${hours}:${minutes}:${remainingSeconds}`;
 }
 
-function renderStudyCenter() {
+function legacyRenderStudyCenter() {
     const container = document.getElementById('studyContainer');
     if (!container) return;
 
@@ -3739,7 +3752,7 @@ function switchStudyMode(mode) {
     renderStudyCenter();
 }
 
-function updateTimerMetadata() {
+function legacyUpdateTimerMetadata() {
     const course = document.getElementById('timerCourse');
     const type = document.getElementById('timerType');
     if (course) studyTimerState.timer.course = course.value;
@@ -3768,7 +3781,7 @@ function applyCustomMode() {
     if (v && v > 0) setTimerMode(v);
 }
 
-function updateTimerDisplay() {
+function legacyUpdateTimerDisplay() {
     const el = document.getElementById('timerDisplay');
     if (!el) return;
     reconcileStudyTimerState();
@@ -3780,7 +3793,7 @@ function updateTimerDisplay() {
     if (status) status.textContent = studyTimerState.timer.status === 'completed' ? 'Complete' : '';
 }
 
-function startTimer() {
+function legacyStartTimer() {
     const course = document.getElementById('timerCourse').value;
     if (!course) { showToast('Please select a course before starting.', 'error'); return; }
     if (timerRunning) return;
@@ -3804,7 +3817,7 @@ function startTimer() {
     updateTimerDisplay();
 }
 
-function pauseTimer() {
+function legacyPauseTimer() {
     if (!timerRunning) return;
     reconcileStudyTimerState();
     const timer = studyTimerState.timer;
@@ -3822,7 +3835,7 @@ function pauseTimer() {
     updateTimerDisplay();
 }
 
-function resumeTimer() {
+function legacyResumeTimer() {
     const timer = studyTimerState.timer;
     if (timerRunning || timer.status !== 'paused' || (timer.durationSeconds > 0 && timer.remainingSeconds <= 0)) return;
     const now = Date.now();
@@ -3835,7 +3848,7 @@ function resumeTimer() {
     updateTimerDisplay();
 }
 
-function resetTimer() {
+function legacyResetTimer() {
     const timer = studyTimerState.timer;
     timer.status = 'idle';
     timer.remainingSeconds = timer.durationSeconds;
@@ -3849,7 +3862,7 @@ function resetTimer() {
     updateTimerDisplay();
 }
 
-function completeTimerSession() {
+function legacyCompleteTimerSession() {
     const timer = studyTimerState.timer;
     if (timer.status === 'completed' || timer.status === 'idle') return;
 
@@ -3879,7 +3892,7 @@ function completeTimerSession() {
     updateTimerDisplay();
 }
 
-function updateStopwatchDisplay() {
+function legacyUpdateStopwatchDisplay() {
     const el = document.getElementById('stopwatchDisplay');
     if (el) el.textContent = formatStopwatchTime(getStopwatchElapsedSeconds());
 }
@@ -3945,6 +3958,268 @@ function resetStopwatch() {
     saveStudyTimerState();
     updateStopwatchDisplay();
 }
+
+function createDefaultStudyTimerState() {
+    return {
+        session: {
+            status: 'setup',
+            durationSeconds: 0,
+            remainingSeconds: 0,
+            elapsedSeconds: 0,
+            startTimestamp: null,
+            endTimestamp: null,
+            sessionStartTimestamp: null,
+            course: '',
+            type: 'Study Session',
+            saved: false
+        }
+    };
+}
+
+function loadStudyTimerState() {
+    const saved = GradeQuestStorage.getJson('studyTimerState', null);
+    const defaults = createDefaultStudyTimerState();
+    const legacySession = saved?.session || saved?.timer || {};
+    const status = legacySession.status === 'idle' ? 'setup' : legacySession.status === 'completed' ? 'finished' : legacySession.status;
+    studyTimerState = {
+        session: {
+            ...defaults.session,
+            ...legacySession,
+            status: ['setup', 'running', 'paused', 'finished', 'saved', 'discarded'].includes(status) ? status : 'setup'
+        }
+    };
+    if (studyTimerState.session.status === 'setup') {
+        studyTimerState.session.durationSeconds = 0;
+        studyTimerState.session.remainingSeconds = 0;
+        studyTimerState.session.elapsedSeconds = 0;
+    }
+    syncTimerGlobals();
+}
+
+function resetStudyTimerState() {
+    studyTimerState = createDefaultStudyTimerState();
+    timerModeSeconds = 0;
+    timerRemaining = 0;
+    timerElapsed = 0;
+    timerRunning = false;
+    clearInterval(timerInterval);
+    timerInterval = null;
+}
+
+function syncTimerGlobals() {
+    const session = studyTimerState.session;
+    timerModeSeconds = session.durationSeconds || 0;
+    timerRemaining = getTimerRemainingSeconds();
+    timerElapsed = session.elapsedSeconds || 0;
+    timerRunning = session.status === 'running';
+}
+
+function getTimerRemainingSeconds(now = Date.now()) {
+    const session = studyTimerState.session;
+    if (session.status === 'running' && session.durationSeconds && session.endTimestamp) {
+        return Math.max(0, Math.ceil((session.endTimestamp - now) / 1000));
+    }
+    return Math.max(0, session.remainingSeconds || 0);
+}
+
+function getTimerElapsedSeconds(now = Date.now()) {
+    const session = studyTimerState.session;
+    if (session.status === 'running' && session.sessionStartTimestamp) {
+        const elapsed = Math.max(0, Math.floor((now - session.sessionStartTimestamp) / 1000));
+        return session.durationSeconds ? Math.min(session.durationSeconds, elapsed) : elapsed;
+    }
+    return Math.max(0, session.elapsedSeconds || 0);
+}
+
+function reconcileStudyTimerState() {
+    const session = studyTimerState.session;
+    if (session.status !== 'running') {
+        syncTimerGlobals();
+        return;
+    }
+    if (!session.durationSeconds) {
+        session.elapsedSeconds = getTimerElapsedSeconds();
+        syncTimerGlobals();
+        return;
+    }
+    const remaining = getTimerRemainingSeconds();
+    if (remaining > 0) {
+        session.remainingSeconds = remaining;
+        session.elapsedSeconds = session.durationSeconds - remaining;
+        syncTimerGlobals();
+        return;
+    }
+    session.remainingSeconds = 0;
+    session.elapsedSeconds = session.durationSeconds;
+    session.status = 'finished';
+    session.startTimestamp = null;
+    session.endTimestamp = Date.now();
+    session.sessionStartTimestamp = session.sessionStartTimestamp || session.endTimestamp - session.durationSeconds * 1000;
+    saveStudyTimerState();
+    showToast('Study session ready to save.', 'success');
+    syncTimerGlobals();
+}
+
+function renderStudyCenter() {
+    const container = document.getElementById('studyContainer');
+    if (!container) return;
+    reconcileStudyTimerState();
+    ensureStudyClock();
+
+    const courseOptions = Object.keys(courses).sort();
+    const session = studyTimerState.session;
+    const isSetup = ['setup', 'discarded', 'saved'].includes(session.status);
+    const defaultCourse = activeCourseName || session.course || (courseOptions.length === 1 ? courseOptions[0] : '');
+    const durationMinutes = session.durationSeconds ? Math.round(session.durationSeconds / 60) : '';
+    const controls = session.status === 'running'
+        ? '<button class="button-secondary" onclick="pauseTimer()">Pause</button><button class="button-primary" onclick="completeTimerSession()">Finish</button>'
+        : session.status === 'paused'
+            ? '<button class="button-primary" onclick="resumeTimer()">Resume</button><button class="button-primary" onclick="completeTimerSession()">Finish</button><button class="button-secondary" onclick="discardStudySession()">Discard</button>'
+            : session.status === 'finished'
+                ? '<button class="button-primary" onclick="saveStudySession()">Save Session</button><button class="button-secondary" onclick="discardStudySession()">Discard</button>'
+                : '<button class="button-primary" onclick="startTimer()">Start Session</button>';
+
+    container.innerHTML = `
+        <div class="panel-card study-timer-card">
+            <h3>Study Session</h3>
+            <p class="notes-line">Leave duration blank to count up. Add minutes to count down.</p>
+            <div class="panel-form">
+                <label for="timerCourse">Course</label>
+                <select id="timerCourse" onchange="updateTimerMetadata()" ${!isSetup ? 'disabled' : ''}>
+                    <option value="">Choose a course</option>
+                    ${courseOptions.map(course => `<option value="${escapeAttr(course)}" ${defaultCourse === course ? 'selected' : ''}>${escapeHtml(course)}</option>`).join('')}
+                </select>
+                <label for="timerDuration">How long? <span class="notes-line">Optional</span></label>
+                <input id="timerDuration" class="study-custom-input" type="number" min="1" max="180" placeholder="Leave blank to count up" value="${durationMinutes}" ${!isSetup ? 'disabled' : ''} />
+                <div class="study-timer-row">
+                    <div class="study-timer-display"><span id="timerDisplay">00:00</span><small id="timerStatus">${session.status === 'setup' ? 'Ready' : session.status}</small></div>
+                    <div class="study-timer-actions">${controls}</div>
+                </div>
+            </div>
+        </div>
+        ${studySessions.length ? '<div class="panel-card study-analytics-card"><h3>Your study so far</h3><div id="studySummary" class="study-summary-grid"></div><div id="studyCharts" class="study-charts"></div><div id="studyInsights" class="study-insights"></div><div id="studyHistory" class="study-history"></div></div>' : ''}
+    `;
+    updateTimerDisplay();
+    renderStudyAnalytics();
+    renderStudyHistory();
+}
+
+function updateTimerMetadata() {
+    const course = document.getElementById('timerCourse');
+    if (course) studyTimerState.session.course = course.value;
+    saveStudyTimerState();
+}
+
+function updateTimerDisplay() {
+    const el = document.getElementById('timerDisplay');
+    if (!el) return;
+    reconcileStudyTimerState();
+    const session = studyTimerState.session;
+    const seconds = session.durationSeconds ? getTimerRemainingSeconds() : getTimerElapsedSeconds();
+    el.textContent = `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`;
+    const status = document.getElementById('timerStatus');
+    if (status) status.textContent = session.status === 'setup' ? 'Ready' : session.status;
+}
+
+function startTimer() {
+    const session = studyTimerState.session;
+    const course = document.getElementById('timerCourse')?.value || session.course;
+    if (!course) { showToast('Please select a course before starting.', 'error'); return; }
+    const durationMinutes = parseInt(document.getElementById('timerDuration')?.value, 10) || 0;
+    const now = Date.now();
+    session.course = course;
+    session.durationSeconds = durationMinutes * 60;
+    session.remainingSeconds = session.durationSeconds;
+    session.elapsedSeconds = 0;
+    session.status = 'running';
+    session.startTimestamp = now;
+    session.endTimestamp = session.durationSeconds ? now + session.durationSeconds * 1000 : null;
+    session.sessionStartTimestamp = now;
+    session.saved = false;
+    saveStudyTimerState();
+    syncTimerGlobals();
+    ensureStudyClock();
+    renderStudyCenter();
+}
+
+function pauseTimer() {
+    const session = studyTimerState.session;
+    if (session.status !== 'running') return;
+    session.elapsedSeconds = getTimerElapsedSeconds();
+    session.remainingSeconds = session.durationSeconds ? session.durationSeconds - session.elapsedSeconds : 0;
+    session.status = 'paused';
+    session.startTimestamp = null;
+    session.endTimestamp = null;
+    saveStudyTimerState();
+    syncTimerGlobals();
+    renderStudyCenter();
+}
+
+function resumeTimer() {
+    const session = studyTimerState.session;
+    if (session.status !== 'paused') return;
+    const now = Date.now();
+    session.status = 'running';
+    session.startTimestamp = now;
+    session.sessionStartTimestamp = now - session.elapsedSeconds * 1000;
+    session.endTimestamp = session.durationSeconds ? now + session.remainingSeconds * 1000 : null;
+    saveStudyTimerState();
+    syncTimerGlobals();
+    ensureStudyClock();
+    renderStudyCenter();
+}
+
+function completeTimerSession() {
+    const session = studyTimerState.session;
+    if (!['running', 'paused'].includes(session.status)) return;
+    if (session.status === 'running') session.elapsedSeconds = getTimerElapsedSeconds();
+    session.remainingSeconds = session.durationSeconds ? Math.max(0, session.durationSeconds - session.elapsedSeconds) : 0;
+    session.status = 'finished';
+    session.startTimestamp = null;
+    session.endTimestamp = Date.now();
+    session.sessionStartTimestamp = session.sessionStartTimestamp || session.endTimestamp - session.elapsedSeconds * 1000;
+    saveStudyTimerState();
+    syncTimerGlobals();
+    renderStudyCenter();
+}
+
+function saveStudySession() {
+    const session = studyTimerState.session;
+    if (session.status !== 'finished' || session.saved) return;
+    recordStudySession({
+        startTimestamp: session.sessionStartTimestamp || Date.now() - session.elapsedSeconds * 1000,
+        endTimestamp: session.endTimestamp || Date.now(),
+        durationSeconds: session.elapsedSeconds,
+        course: session.course,
+        type: 'Study Session',
+        timerType: session.durationSeconds ? 'countdown' : 'countup'
+    });
+    session.status = 'saved';
+    session.saved = true;
+    saveStudyTimerState();
+    showToast('Study session saved.', 'success');
+    renderStudyCenter();
+}
+
+function discardStudySession() {
+    const session = studyTimerState.session;
+    if (!['paused', 'finished'].includes(session.status)) return;
+    session.status = 'discarded';
+    session.startTimestamp = null;
+    session.endTimestamp = null;
+    session.sessionStartTimestamp = null;
+    saveStudyTimerState();
+    syncTimerGlobals();
+    renderStudyCenter();
+}
+
+function resetTimer() {
+    resetStudyTimerState();
+    saveStudyTimerState();
+    renderStudyCenter();
+}
+
+function updateStopwatchDisplay() {}
 
 function renderStudyHistory() {
     const historyEl = document.getElementById('studyHistory');
@@ -5138,4 +5413,20 @@ async function addNoteFromCourse(name) {
     save();
     openCourseDashboard(name);
     showToast('Note added.', 'success');
+}
+
+function toggleMobileNavigation() {
+    const navigation = document.getElementById('primaryNavigation');
+    const toggle = document.getElementById('mobileNavToggle');
+    if (!navigation || !toggle) return;
+    const expanded = navigation.classList.toggle('is-open');
+    toggle.setAttribute('aria-expanded', String(expanded));
+}
+
+function closeMobileNavigation() {
+    const navigation = document.getElementById('primaryNavigation');
+    const toggle = document.getElementById('mobileNavToggle');
+    if (!navigation || !toggle) return;
+    navigation.classList.remove('is-open');
+    toggle.setAttribute('aria-expanded', 'false');
 }
