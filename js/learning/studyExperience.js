@@ -4,6 +4,7 @@ import {
   getCurrentQuestion,
   getSessionProgress,
   pauseSession,
+  restoreSession,
   resumeSession,
   startSession,
   submitResponse,
@@ -15,6 +16,36 @@ let activeQuestion = null;
 let selectedAnswers = [];
 let confidence = 'uncertain';
 let studyContext = null;
+
+function getPersistedState() {
+  return typeof window.getGradeQuestLearningState === 'function'
+    ? window.getGradeQuestLearningState()
+    : null;
+}
+
+function persistActiveSession() {
+  if (!activeSession || typeof window.saveGradeQuestLearningState !== 'function') return;
+  const state = getPersistedState();
+  if (!state || !state.plans.some(plan => plan.studyPlanId === activeSession.studyPlanId)) return;
+  const sessions = state.sessions.filter(session => session.sessionId !== activeSession.sessionId);
+  window.saveGradeQuestLearningState({ ...state, sessions: [...sessions, activeSession] });
+}
+
+function restorePersistedSession() {
+  const state = getPersistedState();
+  if (!state?.sessions?.length) return;
+  const candidate = [...state.sessions]
+    .filter(session => ['active', 'paused'].includes(session.status))
+    .sort((a, b) => String(b.updatedAt || '').localeCompare(String(a.updatedAt || '')))[0];
+  if (!candidate || !state.plans.some(plan => plan.studyPlanId === candidate.studyPlanId)) return;
+  try {
+    activeSession = restoreSession(candidate, { studyPlanId: candidate.studyPlanId });
+    const plan = state.plans.find(item => item.studyPlanId === candidate.studyPlanId);
+    studyContext = { studyPlanId: plan.studyPlanId, studyPlanName: plan.name };
+  } catch (error) {
+    console.warn('Saved learning session rejected:', error);
+  }
+}
 
 function escapeHtml(value) {
   return String(value ?? '')
@@ -112,6 +143,7 @@ function renderActiveSession() {
   if (!activeQuestion) {
     const completed = completeSession(activeSession);
     activeSession = completed;
+    persistActiveSession();
     mountedContainer.innerHTML = `
       <section class="learning-study-complete" aria-live="polite">
         ${renderPlanHeader()}
@@ -194,6 +226,7 @@ window.commitLearningAnswer = (requestedConfidence = 'standard') => {
     masteryBefore: Number(activeQuestion.mastery ?? 10),
     responseId: `${activeSession.sessionId}-response-${activeSession.responseEvents.length + 1}`,
   });
+  persistActiveSession();
   selectedAnswers = [];
   confidence = 'uncertain';
   render();
@@ -202,12 +235,14 @@ window.commitLearningAnswer = (requestedConfidence = 'standard') => {
 window.pauseLearningStudy = () => {
   if (!activeSession) return;
   activeSession = pauseSession(activeSession);
+  persistActiveSession();
   render();
 };
 
 window.resumeLearningStudy = () => {
   if (!activeSession) return;
   activeSession = resumeSession(activeSession);
+  persistActiveSession();
   render();
 };
 
@@ -219,7 +254,7 @@ window.resetLearningStudy = () => {
   render();
 };
 
-window.openLearningStudySession = ({ studyPlanId, studyPlanName, queue, retrievalQueue = [], retentionQueue = [] } = {}) => {
+window.openLearningStudySession = ({ studyPlanId, studyPlanName, studyPlan, queue, retrievalQueue = [], retentionQueue = [] } = {}) => {
   if (!studyPlanId) throw new Error('A studyPlanId is required to open a learning session.');
   studyContext = { studyPlanId, studyPlanName };
   activeSession = startSession(createLearningSession({
@@ -228,6 +263,11 @@ window.openLearningStudySession = ({ studyPlanId, studyPlanName, queue, retrieva
     retrievalQueue,
     retentionQueue,
   }));
+  const state = getPersistedState();
+  if (studyPlan && state && !state.plans.some(plan => plan.studyPlanId === studyPlan.studyPlanId)) {
+    window.saveGradeQuestLearningState({ ...state, plans: [...state.plans, studyPlan] });
+  }
+  persistActiveSession();
   selectedAnswers = [];
   confidence = 'uncertain';
   requireMounted();
@@ -236,6 +276,7 @@ window.openLearningStudySession = ({ studyPlanId, studyPlanName, queue, retrieva
 
 export function mountLearningStudyExperience(container) {
   mountedContainer = container;
+  restorePersistedSession();
   render();
 }
 

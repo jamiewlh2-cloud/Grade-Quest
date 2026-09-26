@@ -12,6 +12,7 @@
         'achievements',
         'flashcards',
         'dashboardConfig',
+        'learningState',
         'pdfImportLearningTest.assessmentMemory',
         'pdfImportLearningTest.trainingDataset',
         'pdfImportLearningTest.hybridTrainingRecords'

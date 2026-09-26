@@ -9,6 +9,7 @@ let studySessions = [];
 let semesterGoals = [];
 let weeklyReviewHistory = [];
 let achievements = [];
+let learningState = null;
 let currentTheme = localStorage.getItem('theme') || 'light';
 let courseOverviewMarkup = null;
 let activeCourseName = '';
@@ -25,6 +26,9 @@ function hydrateUserData(uid) {
     semesterGoals = GradeQuestStorage.getJson('semesterGoals', []);
     weeklyReviewHistory = GradeQuestStorage.getJson('weeklyReviewHistory', []);
     achievements = GradeQuestStorage.getJson('achievements', []);
+    learningState = window.GradeQuestLearningPersistence
+        ? window.GradeQuestLearningPersistence.loadLearningState(GradeQuestStorage, uid)
+        : null;
     loadStudyTimerState();
     if (typeof hydrateProductivityData === 'function') hydrateProductivityData(uid);
 }
@@ -32,7 +36,11 @@ function hydrateUserData(uid) {
 function getGradeQuestDataSnapshot() {
     return Object.fromEntries(GradeQuestStorage.USER_KEYS.map(key => [
         key,
-        key === 'studyNotes' ? GradeQuestStorage.get(key, '') : GradeQuestStorage.getJson(key, null)
+        key === 'studyNotes'
+            ? GradeQuestStorage.get(key, '')
+            : key === 'learningState' && window.GradeQuestLearningPersistence
+                ? window.GradeQuestLearningPersistence.loadLearningState(GradeQuestStorage)
+                : GradeQuestStorage.getJson(key, null)
     ]));
 }
 
@@ -40,6 +48,15 @@ function applyGradeQuestDataSnapshot(snapshot) {
     if (!snapshot || typeof snapshot !== 'object') return;
     Object.entries(snapshot).forEach(([key, value]) => {
         if (!GradeQuestStorage.USER_KEYS.includes(key)) return;
+        if (key === 'learningState') {
+            try {
+                const validated = window.GradeQuestLearningPersistence?.normalizeLearningState(value);
+                if (validated) GradeQuestStorage.setJson(key, validated);
+            } catch (error) {
+                console.warn('Learning snapshot rejected:', error);
+            }
+            return;
+        }
         if (key === 'studyNotes') GradeQuestStorage.set(key, String(value || ''));
         else GradeQuestStorage.setJson(key, value);
     });
@@ -48,6 +65,8 @@ function applyGradeQuestDataSnapshot(snapshot) {
 
 window.getGradeQuestDataSnapshot = getGradeQuestDataSnapshot;
 window.applyGradeQuestDataSnapshot = applyGradeQuestDataSnapshot;
+window.getGradeQuestLearningState = getGradeQuestLearningState;
+window.saveGradeQuestLearningState = saveGradeQuestLearningState;
 
 function clearUserDataState() {
     courses = {};
@@ -59,6 +78,8 @@ function clearUserDataState() {
     semesterGoals = [];
     weeklyReviewHistory = [];
     achievements = [];
+    learningState = null;
+    if (typeof window.resetLearningStudy === 'function') window.resetLearningStudy();
     activeCourseName = '';
     resetStudyTimerState();
     if (typeof clearProductivityDataState === 'function') clearProductivityDataState();
@@ -903,7 +924,8 @@ function exportBackup() {
         weeklyReviewHistory,
         achievements,
         flashcards,
-        dashboardConfig
+        dashboardConfig,
+        learningState: getGradeQuestLearningState()
     };
     const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -938,7 +960,17 @@ function importBackupFile(event) {
             if (data.notes !== undefined) GradeQuestStorage.set('studyNotes', data.notes);
             if (data.flashcards !== undefined) GradeQuestStorage.setJson('flashcards', data.flashcards);
             if (data.dashboardConfig !== undefined) GradeQuestStorage.setJson('dashboardConfig', data.dashboardConfig);
-            showToast('Backup restored successfully.', 'success');
+            let learningWarning = false;
+            if (data.learningState !== undefined) {
+                try {
+                    const validated = window.GradeQuestLearningPersistence.normalizeLearningState(data.learningState);
+                    GradeQuestStorage.setJson('learningState', validated);
+                } catch (error) {
+                    learningWarning = true;
+                    console.warn('Learning backup rejected:', error);
+                }
+            }
+            showToast(learningWarning ? 'Backup restored; learning data was skipped because it was invalid.' : 'Backup restored successfully.', learningWarning ? 'warning' : 'success');
             location.reload();
         } catch (error) {
             showToast('Invalid backup data. Please select a valid GradeQuest JSON file.', 'error');
@@ -5429,4 +5461,14 @@ function closeMobileNavigation() {
     if (!navigation || !toggle) return;
     navigation.classList.remove('is-open');
     toggle.setAttribute('aria-expanded', 'false');
+}
+
+function getGradeQuestLearningState() {
+    return learningState || window.GradeQuestLearningPersistence?.createEmptyLearningState() || null;
+}
+
+function saveGradeQuestLearningState(state) {
+    if (!GradeQuestStorage.getActiveUser() || !window.GradeQuestLearningPersistence) return null;
+    learningState = window.GradeQuestLearningPersistence.saveLearningState(GradeQuestStorage, state);
+    return learningState;
 }
