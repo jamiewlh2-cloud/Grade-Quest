@@ -1935,6 +1935,105 @@ transition: width 0.4s ease;
 
 /* Study Center styles */
 .study-grid { display:flex; gap:16px; flex-wrap:wrap; }
+
+.learning-study-container {
+    display: grid;
+    gap: 16px;
+    margin-top: 20px;
+}
+
+.learning-study-empty,
+.learning-study-session,
+.learning-study-paused,
+.learning-study-complete {
+    display: grid;
+    gap: 18px;
+    padding: 22px;
+    border: 1px solid var(--border);
+    background: var(--surface-secondary);
+}
+
+.learning-study-header,
+.learning-study-actions,
+.learning-study-progress {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.learning-study-header h3,
+.learning-study-empty h3,
+.learning-study-paused h3,
+.learning-study-complete h3,
+.learning-question h4 {
+    margin: 0;
+}
+
+.learning-study-progress {
+    color: var(--muted);
+    font-size: var(--text-sm);
+}
+
+.learning-study-progress strong {
+    color: var(--text);
+}
+
+.learning-question {
+    display: grid;
+    gap: 16px;
+    max-width: 760px;
+}
+
+.learning-question-count,
+.learning-confidence-hint {
+    margin: 0;
+    color: var(--muted);
+    font-size: var(--text-sm);
+}
+
+.learning-answer-list {
+    display: grid;
+    gap: 10px;
+}
+
+.learning-answer {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    padding: 13px 15px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    text-align: left;
+    cursor: pointer;
+}
+
+.learning-answer:hover,
+.learning-answer.is-selected {
+    border-color: var(--accent);
+    background: var(--surface-tertiary);
+}
+
+.learning-answer-marker {
+    display: grid;
+    place-items: center;
+    width: 26px;
+    height: 26px;
+    border: 1px solid currentColor;
+    color: var(--muted);
+    font-size: var(--text-xs);
+}
+
+.learning-pause-button {
+    justify-self: start;
+    border: 0;
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    text-decoration: underline;
+}
 .study-timer-card { flex: 1 1 380px; }
 .study-analytics-card { flex: 2 1 520px; }
 
