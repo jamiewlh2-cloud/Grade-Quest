@@ -4,6 +4,7 @@ export function createEmptyLearningState() {
   return {
     schemaVersion: LEARNING_SCHEMA_VERSION,
     plans: [],
+    studyMaterials: [],
     questions: [],
     objectives: [],
     masteryRecords: [],
@@ -39,7 +40,7 @@ export function validateLearningState(payload) {
   }
 
   const state = { ...createEmptyLearningState(), ...payload };
-  ['plans', 'questions', 'objectives', 'masteryRecords', 'responseEvents', 'reviewSchedules', 'sessions'].forEach(key => assertArray(state, key));
+  ['plans', 'studyMaterials', 'questions', 'objectives', 'masteryRecords', 'responseEvents', 'reviewSchedules', 'sessions'].forEach(key => assertArray(state, key));
   if (!state.analytics || typeof state.analytics !== 'object' || Array.isArray(state.analytics)) {
     throw new Error('Learning state analytics must be an object.');
   }
@@ -55,7 +56,7 @@ export function validateLearningState(payload) {
     plans.set(plan.studyPlanId, plan);
   });
 
-  const childCollections = ['questions', 'objectives', 'masteryRecords', 'responseEvents', 'reviewSchedules', 'sessions'];
+  const childCollections = ['studyMaterials', 'questions', 'objectives', 'masteryRecords', 'responseEvents', 'reviewSchedules', 'sessions'];
   childCollections.forEach(collectionName => {
     state[collectionName].forEach(record => {
       assertPlanId(record, collectionName);

@@ -35,11 +35,13 @@ test('valid learning state preserves sibling StudyPlan boundaries', () => {
     { studyPlanId: 'plan-a', questionId: 'q-a' },
     { studyPlanId: 'plan-b', questionId: 'q-b' },
   ];
+  state.studyMaterials = [{ studyPlanId: 'plan-a', materialId: 'material-a', name: 'Lecture notes.pdf' }];
   state.sessions = [{ studyPlanId: 'plan-a', sessionId: 'session-a' }];
 
   const validated = validateLearningState(state);
   assert.deepEqual(validated.plans.map(item => item.studyPlanId), ['plan-a', 'plan-b']);
   assert.equal(validated.questions[1].studyPlanId, 'plan-b');
+  assert.equal(validated.studyMaterials[0].studyPlanId, 'plan-a');
 });
 
 test('invalid or cross-course learning records are rejected without implicit plans', () => {

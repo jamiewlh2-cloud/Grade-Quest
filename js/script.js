@@ -3407,6 +3407,79 @@ function renderCourseStudyPlans(name) {
     `;
 }
 
+function getStudyPlanMaterials(studyPlanId) {
+    const state = window.getGradeQuestLearningState?.();
+    return (state?.studyMaterials || []).filter(material => material.studyPlanId === studyPlanId);
+}
+
+function renderStudyPlanMaterials(plan) {
+    const materials = getStudyPlanMaterials(plan.studyPlanId);
+    const materialRows = materials.length ? materials.map(material => `
+        <div class="study-material-list-item">
+            <div>
+                <strong>${escapeHtml(material.name)}</strong>
+                <p>${escapeHtml(material.type || 'File')} · ${formatFileSize(material.size)}</p>
+            </div>
+            <a class="button-secondary" href="${escapeHtml(material.data)}" target="_blank" rel="noopener">Open File</a>
+        </div>
+    `).join('') : '<div class="workspace-empty-state"><strong>No Study Materials yet.</strong><span>Upload a file to keep learning material with this StudyPlan.</span></div>';
+
+    return `
+        <section class="study-plan-materials" aria-labelledby="studyPlanMaterialsTitle">
+            <div class="course-section-heading">
+                <div><h3 id="studyPlanMaterialsTitle">Study Materials</h3><p class="notes-line">Files associated with this StudyPlan.</p></div>
+                <label class="button-primary study-material-upload-button" for="studyPlanMaterialInput">Upload File</label>
+                <input id="studyPlanMaterialInput" class="hidden" type="file" accept="image/*,.pdf,.txt,.doc,.docx,.ppt,.pptx" onchange="uploadStudyPlanMaterial('${plan.studyPlanId.replace(/'/g, "\\'")}')">
+            </div>
+            <div class="study-material-list">${materialRows}</div>
+        </section>
+    `;
+}
+
+function formatFileSize(size) {
+    const bytes = Number(size || 0);
+    if (!bytes) return 'Size unavailable';
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+async function uploadStudyPlanMaterial(studyPlanId) {
+    const input = document.getElementById('studyPlanMaterialInput');
+    const file = input?.files?.[0];
+    if (!file) return;
+
+    try {
+        const state = window.getGradeQuestLearningState?.();
+        if (!state || typeof window.saveGradeQuestLearningState !== 'function') throw new Error('StudyPlan storage is not available.');
+        const material = {
+            materialId: `material-${Date.now()}`,
+            studyPlanId,
+            name: file.name,
+            type: file.type || 'application/octet-stream',
+            size: file.size,
+            data: await readUploadedFileAsDataURL(file),
+            uploadedAt: new Date().toISOString(),
+        };
+        window.saveGradeQuestLearningState({
+            ...state,
+            studyMaterials: [...(state.studyMaterials || []), material],
+        });
+        showToast('Study Material uploaded.', 'success');
+        const courseName = getStudyPlanCourseName(studyPlanId);
+        if (courseName) openStudyPlanDashboard(courseName, studyPlanId);
+    } catch (error) {
+        showToast(error.message || 'Unable to upload Study Material.', 'error');
+    } finally {
+        if (input) input.value = '';
+    }
+}
+
+function getStudyPlanCourseName(studyPlanId) {
+    const plan = window.GradeQuestStudyPlanCatalog?.createUserStudyPlanCatalog?.().getStudyPlan(studyPlanId);
+    return plan?.courseId || '';
+}
+
 function openStudyPlanDashboard(courseName, studyPlanId) {
     const panel = document.getElementById('coursesPanel');
     const catalogFactory = window.GradeQuestStudyPlanCatalog?.createUserStudyPlanCatalog;
@@ -3434,6 +3507,7 @@ function openStudyPlanDashboard(courseName, studyPlanId) {
                     <div><span>Created</span><strong>${formatDate(plan.createdAt)}</strong></div>
                     <div><span>Last studied</span><strong>${formatDate(plan.lastStudiedAt)}</strong></div>
                 </div>
+                ${renderStudyPlanMaterials(plan)}
             </div>
         `;
     } catch (error) {
