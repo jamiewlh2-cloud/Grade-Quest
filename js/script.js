@@ -3357,6 +3357,7 @@ function startInlineCourseNoteEdit(name, noteId) {
         </div>
     `;
     item.querySelector('textarea')?.focus();
+}
 
 function getCourseStudyPlans(name) {
     const catalogFactory = window.GradeQuestStudyPlanCatalog?.createUserStudyPlanCatalog;
@@ -3437,7 +3438,6 @@ function createStudyPlanFromCourse(name) {
     } catch (error) {
         showToast(error.message || 'Unable to create Study Plan.', 'error');
     }
-}
 }
 
 function saveInlineCourseNote(name, noteId) {
