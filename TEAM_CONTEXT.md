@@ -130,6 +130,39 @@ Each study plan is an independent learning environment.
 
 ---
 
+### Study Plan Entity
+
+StudyPlan is a first-class entity.
+
+Required fields:
+
+- id
+- courseId
+- name
+- description
+- createdAt
+- updatedAt
+- lastStudiedAt
+- archived
+
+StudyPlan is the source of truth for:
+
+- questions
+- objectives
+- responses
+- mastery
+- scheduling
+- analytics
+- study sessions
+- imported question banks
+- AI-generated question banks
+
+Course-level learning metrics are derived from study plans.
+
+Study plans are independent learning environments.
+
+---
+
 ## Project Principles
 
 1. Build production-quality software.
