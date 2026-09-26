@@ -3357,6 +3357,87 @@ function startInlineCourseNoteEdit(name, noteId) {
         </div>
     `;
     item.querySelector('textarea')?.focus();
+
+function getCourseStudyPlans(name) {
+    const catalogFactory = window.GradeQuestStudyPlanCatalog?.createUserStudyPlanCatalog;
+    if (typeof catalogFactory !== 'function') return [];
+    try {
+        return catalogFactory().listStudyPlansByCourse(name, { includeArchived: true });
+    } catch (error) {
+        console.warn('StudyPlan list unavailable:', error);
+        return [];
+    }
+}
+
+function renderCourseStudyPlans(name) {
+    const courseArg = name.replace(/'/g, "\\'");
+    const plans = getCourseStudyPlans(name);
+    const planRows = plans.length ? plans.map(plan => `
+        <div class="study-plan-list-item">
+            <div>
+                <strong>${escapeHtml(plan.name)}</strong>
+                <p>${escapeHtml(plan.description || 'No description added.')}</p>
+            </div>
+            <dl class="study-plan-meta">
+                <div><dt>Status</dt><dd>${escapeHtml(plan.status || (plan.archived ? 'archived' : 'active'))}</dd></div>
+                <div><dt>Last studied</dt><dd>${plan.lastStudiedAt ? escapeHtml(plan.lastStudiedAt) : 'Not studied yet'}</dd></div>
+            </dl>
+        </div>
+    `).join('') : '<div class="workspace-empty-state"><strong>No Study Plans yet.</strong><span>Create one for this course to keep learning content and progress together.</span></div>';
+
+    return `
+        <div class="panel-card course-study-plans-card">
+            <div class="course-section-heading">
+                <div><h3>Study Plans</h3><p class="notes-line">Independent learning spaces for this course.</p></div>
+                <button class="button-primary" type="button" onclick="toggleStudyPlanCreateForm(this)">Create Study Plan</button>
+            </div>
+            <div class="study-plan-create-form" hidden>
+                <label for="studyPlanNameInput">Name</label>
+                <input id="studyPlanNameInput" type="text" maxlength="120" placeholder="e.g. Midterm Review">
+                <label for="studyPlanDescriptionInput">Description <span class="notes-line">Optional</span></label>
+                <textarea id="studyPlanDescriptionInput" rows="3" maxlength="500" placeholder="What should this plan cover?"></textarea>
+                <div class="course-detail-row-actions">
+                    <button class="button-primary" type="button" onclick="createStudyPlanFromCourse('${courseArg}')">Save Study Plan</button>
+                    <button class="button-secondary" type="button" onclick="toggleStudyPlanCreateForm(this)">Cancel</button>
+                </div>
+            </div>
+            <div class="study-plan-list">${planRows}</div>
+        </div>
+    `;
+}
+
+function toggleStudyPlanCreateForm(button) {
+    const card = button.closest('.course-study-plans-card');
+    const form = card?.querySelector('.study-plan-create-form');
+    if (!form) return;
+    form.hidden = !form.hidden;
+    if (!form.hidden) card.querySelector('#studyPlanNameInput')?.focus();
+}
+
+function createStudyPlanFromCourse(name) {
+    const nameInput = document.getElementById('studyPlanNameInput');
+    const descriptionInput = document.getElementById('studyPlanDescriptionInput');
+    const planName = nameInput?.value.trim();
+    if (!planName) {
+        showToast('Enter a Study Plan name.', 'error');
+        nameInput?.focus();
+        return;
+    }
+
+    try {
+        const catalogFactory = window.GradeQuestStudyPlanCatalog?.createUserStudyPlanCatalog;
+        if (typeof catalogFactory !== 'function') throw new Error('StudyPlan storage is not available.');
+        catalogFactory().createStudyPlan({
+            courseId: name,
+            name: planName,
+            description: descriptionInput?.value || '',
+        });
+        showToast('Study Plan created.', 'success');
+        openCourseDashboard(name);
+    } catch (error) {
+        showToast(error.message || 'Unable to create Study Plan.', 'error');
+    }
+}
 }
 
 function saveInlineCourseNote(name, noteId) {
@@ -3457,6 +3538,8 @@ function openCourseDashboard(name) {
                 <div class="course-section-heading"><h3>Assessments</h3><button class="button-primary" onclick="addGradeFromCourse('${name.replace(/'/g, "\\'")}')">${course.grades?.length ? 'Add Grade' : 'Add Assessment'}</button></div>
                 ${renderCourseAssessmentRows(name, course, outlineItems, relatedTasks)}
             </div>
+
+            ${renderCourseStudyPlans(name)}
 
             <div class="panel-card course-secondary-card">
                 <div class="course-section-heading"><h3>Resources</h3><button class="button-secondary" onclick="addResourceFromCourse('${name.replace(/'/g, "\\'")}')">Add Resource</button></div>
