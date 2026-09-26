@@ -32,6 +32,7 @@ test('question repository accepts valid records, rejects malformed ones, and res
   assert.throws(() => repo.registerQuestion({
     questionId: 'q-1',
     conceptId: 'c-1',
+    studyPlanId: 'plan-1',
     courseId: 'course-1',
     objectiveIds: ['obj-1'],
     type: 'single-answer',
@@ -51,6 +52,18 @@ test('question repository accepts valid records, rejects malformed ones, and res
     prompt: 'Question missing objective link.',
     correctAnswer: '4',
     explanation: 'No objective link.',
+    applicationLevel: 'direct retrieval',
+  }));
+
+  assert.throws(() => repo.registerQuestion({
+    questionId: 'q-missing-plan',
+    conceptId: 'c-missing-plan',
+    courseId: 'course-1',
+    objectiveIds: ['obj-1'],
+    type: 'single-answer',
+    prompt: 'Missing study plan.',
+    correctAnswer: '4',
+    explanation: 'This should fail.',
     applicationLevel: 'direct retrieval',
   }));
 });
@@ -125,6 +138,13 @@ test('objective catalog validates and preserves objective history when deactivat
     studyPlanId: 'plan-1',
     courseId: 'course-1',
     title: '',
+    importance: 3,
+  }));
+
+  assert.throws(() => catalog.registerObjective({
+    objectiveId: 'obj-missing-plan',
+    courseId: 'course-1',
+    title: 'Missing plan',
     importance: 3,
   }));
 });

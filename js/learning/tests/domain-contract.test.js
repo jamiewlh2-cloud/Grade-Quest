@@ -17,6 +17,7 @@ test('valid questions normalize with stable defaults', () => {
   const question = normalizeQuestion({
     questionId: 'q-1',
     conceptId: 'c-1',
+    studyPlanId: 'plan-1',
     courseId: 'course-1',
     objectiveIds: ['obj-1'],
     type: 'single-answer',
@@ -39,6 +40,7 @@ test('invalid question payloads are rejected', () => {
   assert.throws(() => normalizeQuestion({
     questionId: 'q-1',
     conceptId: 'c-1',
+    studyPlanId: 'plan-1',
     objectiveIds: [],
     type: 'single-answer',
     prompt: '',
@@ -82,6 +84,7 @@ test('mastery is bounded and mapped to the required bands', () => {
 test('response normalization preserves commitment-time evidence and supports multi-answer contracts', () => {
   const response = normalizeResponse({
     responseId: 'r-1',
+    studyPlanId: 'plan-1',
     sessionId: 's-1',
     questionId: 'q-1',
     conceptId: 'c-1',

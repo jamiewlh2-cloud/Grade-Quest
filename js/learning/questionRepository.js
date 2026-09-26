@@ -19,7 +19,6 @@ export function createQuestionRepository(initialQuestions = []) {
 
     const questionRecord = {
       ...normalized,
-      studyPlanId: normalized.studyPlanId || 'default-study-plan',
       mastery: typeof normalized.mastery === 'number' ? normalized.mastery : INITIAL_MASTERY,
     };
 
@@ -30,7 +29,7 @@ export function createQuestionRepository(initialQuestions = []) {
     courseList.push(questionRecord.questionId);
     questionsByCourse.set(courseKey, courseList);
 
-    const studyPlanKey = questionRecord.studyPlanId || 'default-study-plan';
+    const studyPlanKey = questionRecord.studyPlanId;
     const studyPlanList = questionsByStudyPlan.get(studyPlanKey) || [];
     studyPlanList.push(questionRecord.questionId);
     questionsByStudyPlan.set(studyPlanKey, studyPlanList);

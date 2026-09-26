@@ -30,6 +30,10 @@ export function normalizeQuestion(question) {
     throw new Error('Question payload is required.');
   }
 
+  if (!question.studyPlanId) {
+    throw new Error('Question must include a studyPlanId.');
+  }
+
   if (!question.questionId || !question.conceptId || !question.type || !question.prompt || !question.correctAnswer || !question.explanation || !question.applicationLevel) {
     throw new Error('Question is missing required fields.');
   }
@@ -83,12 +87,16 @@ export function normalizeResponse(response) {
     throw new Error('Response payload is required.');
   }
 
+  if (!response.studyPlanId) {
+    throw new Error('Response must include a studyPlanId.');
+  }
+
   const confidence = normalizeConfidence(response.confidence);
   const normalized = {
     ...response,
     confidence,
     outcome: response.outcome || (response.correct === true ? 'correct' : response.correct === false ? 'incorrect' : 'timeout'),
-    calibrationResult: response.correct === true && confidence === 'certain' ? 'calibrated' : response.correct === false && confidence === 'certain' ? 'overconfident' : response.correct === true && confidence === 'uncertain' ? 'underconfident' : 'appropriately cautious',
+    calibrationResult: response.correct === true && confidence === 'certain' ? 'calibrated' : response.correct === true && confidence === 'standard' ? 'calibrated' : response.correct === false && confidence === 'certain' ? 'overconfident' : response.correct === true && confidence === 'uncertain' ? 'underconfident' : 'appropriately cautious',
     response: response.response ?? [],
   };
 

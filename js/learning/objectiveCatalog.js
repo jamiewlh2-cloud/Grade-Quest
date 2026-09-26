@@ -20,12 +20,15 @@ export function createObjectiveCatalog(initialObjectives = []) {
 
     const normalized = {
       ...objective,
-      studyPlanId: objective.studyPlanId || 'default-study-plan',
       description: objective.description || '',
       importance: typeof objective.importance === 'number' ? objective.importance : 1,
       questionIds: Array.isArray(objective.questionIds) ? [...objective.questionIds] : [],
       active: objective.active !== false,
     };
+
+    if (!normalized.studyPlanId) {
+      throw new Error('Objective must include a studyPlanId.');
+    }
 
     if (objectivesById.has(normalized.objectiveId)) {
       throw new Error(`Objective ${normalized.objectiveId} already exists.`);
@@ -38,7 +41,7 @@ export function createObjectiveCatalog(initialObjectives = []) {
     courseList.push(normalized.objectiveId);
     objectivesByCourse.set(courseKey, courseList);
 
-    const studyPlanKey = normalized.studyPlanId || 'default-study-plan';
+    const studyPlanKey = normalized.studyPlanId;
     const studyPlanList = objectivesByStudyPlan.get(studyPlanKey) || [];
     studyPlanList.push(normalized.objectiveId);
     objectivesByStudyPlan.set(studyPlanKey, studyPlanList);
