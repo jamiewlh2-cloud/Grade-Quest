@@ -3374,7 +3374,7 @@ function renderCourseStudyPlans(name) {
     const courseArg = name.replace(/'/g, "\\'");
     const plans = getCourseStudyPlans(name);
     const planRows = plans.length ? plans.map(plan => `
-        <div class="study-plan-list-item">
+        <button class="study-plan-list-item" type="button" onclick="openStudyPlanDashboard('${courseArg}', '${plan.studyPlanId.replace(/'/g, "\\'")}')">
             <div>
                 <strong>${escapeHtml(plan.name)}</strong>
                 <p>${escapeHtml(plan.description || 'No description added.')}</p>
@@ -3383,7 +3383,7 @@ function renderCourseStudyPlans(name) {
                 <div><dt>Status</dt><dd>${escapeHtml(plan.status || (plan.archived ? 'archived' : 'active'))}</dd></div>
                 <div><dt>Last studied</dt><dd>${plan.lastStudiedAt ? escapeHtml(plan.lastStudiedAt) : 'Not studied yet'}</dd></div>
             </dl>
-        </div>
+        </button>
     `).join('') : '<div class="workspace-empty-state"><strong>No Study Plans yet.</strong><span>Create one for this course to keep learning content and progress together.</span></div>';
 
     return `
@@ -3405,6 +3405,40 @@ function renderCourseStudyPlans(name) {
             <div class="study-plan-list">${planRows}</div>
         </div>
     `;
+}
+
+function openStudyPlanDashboard(courseName, studyPlanId) {
+    const panel = document.getElementById('coursesPanel');
+    const catalogFactory = window.GradeQuestStudyPlanCatalog?.createUserStudyPlanCatalog;
+    if (!panel || typeof catalogFactory !== 'function') return;
+
+    try {
+        const plan = catalogFactory().getStudyPlan(studyPlanId);
+        if (plan.courseId !== courseName || plan.status === 'deleted') return;
+        const courseArg = courseName.replace(/'/g, "\\'");
+        const formatDate = value => value ? escapeHtml(new Date(value).toLocaleDateString()) : 'Not available';
+
+        panel.querySelector('.panel-card').innerHTML = `
+            <div class="panel-heading">
+                <div>
+                    <p class="eyebrow">Study Plan</p>
+                    <h3>${escapeHtml(plan.name)}</h3>
+                </div>
+                <button class="button-secondary" type="button" onclick="openCourseDashboard('${courseArg}')">← Back to Course</button>
+            </div>
+            <div class="study-plan-dashboard">
+                <p class="notes-line">Independent learning workspace for ${escapeHtml(courseName)}.</p>
+                <div class="study-plan-dashboard-facts">
+                    <div><span>Description</span><strong>${escapeHtml(plan.description || 'No description added.')}</strong></div>
+                    <div><span>Status</span><strong>${escapeHtml(plan.status || (plan.archived ? 'archived' : 'active'))}</strong></div>
+                    <div><span>Created</span><strong>${formatDate(plan.createdAt)}</strong></div>
+                    <div><span>Last studied</span><strong>${formatDate(plan.lastStudiedAt)}</strong></div>
+                </div>
+            </div>
+        `;
+    } catch (error) {
+        console.warn('StudyPlan dashboard unavailable:', error);
+    }
 }
 
 function toggleStudyPlanCreateForm(button) {

@@ -511,8 +511,20 @@ body.dark-mode .course-detail-row-content {
     align-items: flex-start;
     justify-content: space-between;
     gap: 20px;
+    width: 100%;
     padding: 14px 0;
+    border-right: 0;
+    border-bottom: 0;
     border-top: 1px solid var(--border);
+    background: transparent;
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.study-plan-list-item:hover,
+.study-plan-list-item:focus-visible {
+    background: var(--surface-secondary);
 }
 
 .study-plan-list-item p {
@@ -541,6 +553,36 @@ body.dark-mode .course-detail-row-content {
 .study-plan-meta dd {
     margin: 0;
     font-size: var(--text-sm);
+}
+
+.study-plan-dashboard {
+    display: grid;
+    gap: 20px;
+    max-width: 780px;
+}
+
+.study-plan-dashboard-facts {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.study-plan-dashboard-facts div {
+    display: grid;
+    gap: 6px;
+    padding: 16px;
+    border: 1px solid var(--border);
+    background: var(--surface-secondary);
+}
+
+.study-plan-dashboard-facts span {
+    color: var(--muted);
+    font-size: var(--text-xs);
+    text-transform: uppercase;
+}
+
+.study-plan-dashboard-facts strong {
+    overflow-wrap: anywhere;
 }
 
 .course-health-badge {
