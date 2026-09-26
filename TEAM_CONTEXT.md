@@ -163,6 +163,25 @@ Study plans are independent learning environments.
 
 ---
 
+### Confidence Answering
+
+Grade Quest should support the following answer states:
+
+Single-click answer:
+- Unconfident answer
+
+Two different answers selected:
+- Unconfident between choices
+
+Double-click answer:
+- Confident answer
+
+The learning engine should use confidence information when updating mastery.
+
+The UI may evolve, but these confidence states are required.
+
+---
+
 ## Project Principles
 
 1. Build production-quality software.
