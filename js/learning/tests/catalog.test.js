@@ -10,6 +10,7 @@ test('question repository accepts valid records, rejects malformed ones, and res
   repo.registerQuestion({
     questionId: 'q-1',
     conceptId: 'c-1',
+    studyPlanId: 'plan-1',
     courseId: 'course-1',
     objectiveIds: ['obj-1'],
     type: 'single-answer',
@@ -24,6 +25,7 @@ test('question repository accepts valid records, rejects malformed ones, and res
 
   assert.equal(repo.getQuestionById('q-1').questionId, 'q-1');
   assert.deepEqual(repo.getQuestionsByCourse('course-1').map(question => question.questionId), ['q-1']);
+  assert.deepEqual(repo.getQuestionsByStudyPlan('plan-1').map(question => question.questionId), ['q-1']);
   assert.deepEqual(repo.getQuestionsByObjective('obj-1').map(question => question.questionId), ['q-1']);
   assert.deepEqual(repo.getQuestionsByType('single-answer').map(question => question.questionId), ['q-1']);
 
@@ -42,6 +44,7 @@ test('question repository accepts valid records, rejects malformed ones, and res
   assert.throws(() => repo.registerQuestion({
     questionId: 'q-2',
     conceptId: 'c-2',
+    studyPlanId: 'plan-1',
     courseId: 'course-1',
     objectiveIds: [],
     type: 'single-answer',
@@ -57,6 +60,7 @@ test('question repository deactivation preserves history and excludes inactive r
     {
       questionId: 'q-3',
       conceptId: 'c-3',
+      studyPlanId: 'plan-2',
       courseId: 'course-2',
       objectiveIds: ['obj-2'],
       type: 'multiple-answer',
@@ -70,6 +74,7 @@ test('question repository deactivation preserves history and excludes inactive r
     {
       questionId: 'q-4',
       conceptId: 'c-4',
+      studyPlanId: 'plan-2',
       courseId: 'course-2',
       objectiveIds: ['obj-2'],
       type: 'multiple-answer',
@@ -96,6 +101,7 @@ test('objective catalog validates and preserves objective history when deactivat
 
   catalog.registerObjective({
     objectiveId: 'obj-1',
+    studyPlanId: 'plan-1',
     courseId: 'course-1',
     title: 'Basic arithmetic',
     description: 'Learn arithmetic fundamentals.',
@@ -106,6 +112,7 @@ test('objective catalog validates and preserves objective history when deactivat
 
   assert.equal(catalog.getObjectiveById('obj-1').title, 'Basic arithmetic');
   assert.deepEqual(catalog.getObjectivesByCourse('course-1').map(objective => objective.objectiveId), ['obj-1']);
+  assert.deepEqual(catalog.getObjectivesByStudyPlan('plan-1').map(objective => objective.objectiveId), ['obj-1']);
   assert.deepEqual(catalog.getQuestionIdsForObjective('obj-1'), ['q-1', 'q-2']);
 
   catalog.deactivateObjective('obj-1');
@@ -115,6 +122,7 @@ test('objective catalog validates and preserves objective history when deactivat
 
   assert.throws(() => catalog.registerObjective({
     objectiveId: 'obj-1',
+    studyPlanId: 'plan-1',
     courseId: 'course-1',
     title: '',
     importance: 3,

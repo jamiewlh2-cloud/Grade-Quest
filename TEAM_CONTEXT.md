@@ -82,6 +82,39 @@ Do not replace deterministic logic with machine learning.
 
 ---
 
+### Study Plan Model
+
+A course may contain zero or more study plans.
+
+Examples:
+
+COMP 2712
+- Midterm Review
+- Final Exam Review
+- Assignment Concepts
+
+MATH 2718
+- Chapter 1 Review
+- Chapter 2 Review
+- Final Exam Review
+
+Study plans are independent learning environments.
+
+Study plans own:
+- questions
+- objectives
+- mastery
+- scheduling
+- analytics
+- imported question banks
+- AI-generated question banks
+
+Learning progress is tracked per study plan, not per course.
+
+Course-level metrics may be derived from study plans, but study plans are the source of truth.
+
+---
+
 ## Project Principles
 
 1. Build production-quality software.

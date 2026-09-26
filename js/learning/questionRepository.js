@@ -3,6 +3,7 @@ import { INITIAL_MASTERY, normalizeQuestion } from './schema.js';
 export function createQuestionRepository(initialQuestions = []) {
   const questionsById = new Map();
   const questionsByCourse = new Map();
+  const questionsByStudyPlan = new Map();
   const questionsByObjective = new Map();
   const questionsByType = new Map();
 
@@ -16,22 +17,33 @@ export function createQuestionRepository(initialQuestions = []) {
       throw new Error(`Question ${normalized.questionId} already exists.`);
     }
 
-    questionsById.set(normalized.questionId, { ...normalized, mastery: typeof normalized.mastery === 'number' ? normalized.mastery : INITIAL_MASTERY });
+    const questionRecord = {
+      ...normalized,
+      studyPlanId: normalized.studyPlanId || 'default-study-plan',
+      mastery: typeof normalized.mastery === 'number' ? normalized.mastery : INITIAL_MASTERY,
+    };
 
-    const courseKey = normalized.courseId || 'uncategorized';
+    questionsById.set(questionRecord.questionId, questionRecord);
+
+    const courseKey = questionRecord.courseId || 'uncategorized';
     const courseList = questionsByCourse.get(courseKey) || [];
-    courseList.push(normalized.questionId);
+    courseList.push(questionRecord.questionId);
     questionsByCourse.set(courseKey, courseList);
 
-    for (const objectiveId of normalized.objectiveIds) {
+    const studyPlanKey = questionRecord.studyPlanId || 'default-study-plan';
+    const studyPlanList = questionsByStudyPlan.get(studyPlanKey) || [];
+    studyPlanList.push(questionRecord.questionId);
+    questionsByStudyPlan.set(studyPlanKey, studyPlanList);
+
+    for (const objectiveId of questionRecord.objectiveIds) {
       const objectiveList = questionsByObjective.get(objectiveId) || [];
-      objectiveList.push(normalized.questionId);
+      objectiveList.push(questionRecord.questionId);
       questionsByObjective.set(objectiveId, objectiveList);
     }
 
-    const typeList = questionsByType.get(normalized.type) || [];
-    typeList.push(normalized.questionId);
-    questionsByType.set(normalized.type, typeList);
+    const typeList = questionsByType.get(questionRecord.type) || [];
+    typeList.push(questionRecord.questionId);
+    questionsByType.set(questionRecord.type, typeList);
   }
 
   function getQuestionById(questionId) {
@@ -40,6 +52,11 @@ export function createQuestionRepository(initialQuestions = []) {
 
   function getQuestionsByCourse(courseId) {
     const ids = questionsByCourse.get(courseId) || [];
+    return ids.map(id => questionsById.get(id)).filter(Boolean);
+  }
+
+  function getQuestionsByStudyPlan(studyPlanId) {
+    const ids = questionsByStudyPlan.get(studyPlanId) || [];
     return ids.map(id => questionsById.get(id)).filter(Boolean);
   }
 
@@ -74,6 +91,7 @@ export function createQuestionRepository(initialQuestions = []) {
     registerQuestion,
     getQuestionById,
     getQuestionsByCourse,
+    getQuestionsByStudyPlan,
     getQuestionsByObjective,
     getQuestionsByType,
     getAllQuestionIds,

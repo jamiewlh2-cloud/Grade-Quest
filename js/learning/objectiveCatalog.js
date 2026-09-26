@@ -1,6 +1,7 @@
 export function createObjectiveCatalog(initialObjectives = []) {
   const objectivesById = new Map();
   const objectivesByCourse = new Map();
+  const objectivesByStudyPlan = new Map();
 
   for (const objective of initialObjectives) {
     registerObjective(objective);
@@ -19,6 +20,7 @@ export function createObjectiveCatalog(initialObjectives = []) {
 
     const normalized = {
       ...objective,
+      studyPlanId: objective.studyPlanId || 'default-study-plan',
       description: objective.description || '',
       importance: typeof objective.importance === 'number' ? objective.importance : 1,
       questionIds: Array.isArray(objective.questionIds) ? [...objective.questionIds] : [],
@@ -35,6 +37,11 @@ export function createObjectiveCatalog(initialObjectives = []) {
     const courseList = objectivesByCourse.get(courseKey) || [];
     courseList.push(normalized.objectiveId);
     objectivesByCourse.set(courseKey, courseList);
+
+    const studyPlanKey = normalized.studyPlanId || 'default-study-plan';
+    const studyPlanList = objectivesByStudyPlan.get(studyPlanKey) || [];
+    studyPlanList.push(normalized.objectiveId);
+    objectivesByStudyPlan.set(studyPlanKey, studyPlanList);
   }
 
   function getObjectiveById(objectiveId) {
@@ -43,6 +50,11 @@ export function createObjectiveCatalog(initialObjectives = []) {
 
   function getObjectivesByCourse(courseId) {
     const ids = objectivesByCourse.get(courseId) || [];
+    return ids.map(id => objectivesById.get(id)).filter(Boolean);
+  }
+
+  function getObjectivesByStudyPlan(studyPlanId) {
+    const ids = objectivesByStudyPlan.get(studyPlanId) || [];
     return ids.map(id => objectivesById.get(id)).filter(Boolean);
   }
 
@@ -68,6 +80,7 @@ export function createObjectiveCatalog(initialObjectives = []) {
     registerObjective,
     getObjectiveById,
     getObjectivesByCourse,
+    getObjectivesByStudyPlan,
     getQuestionIdsForObjective,
     getAllObjectiveIds,
     deactivateObjective,
