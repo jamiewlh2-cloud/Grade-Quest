@@ -29,6 +29,7 @@ function hydrateUserData(uid) {
     learningState = window.GradeQuestLearningPersistence
         ? window.GradeQuestLearningPersistence.loadLearningState(GradeQuestStorage, uid)
         : null;
+    window.dispatchEvent(new CustomEvent('gradequest:learning-state-changed'));
     loadStudyTimerState();
     if (typeof hydrateProductivityData === 'function') hydrateProductivityData(uid);
 }
@@ -5470,5 +5471,6 @@ function getGradeQuestLearningState() {
 function saveGradeQuestLearningState(state) {
     if (!GradeQuestStorage.getActiveUser() || !window.GradeQuestLearningPersistence) return null;
     learningState = window.GradeQuestLearningPersistence.saveLearningState(GradeQuestStorage, state);
+    window.dispatchEvent(new CustomEvent('gradequest:learning-state-changed'));
     return learningState;
 }

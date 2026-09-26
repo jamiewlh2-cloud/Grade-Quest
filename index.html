@@ -296,6 +296,16 @@ Date Created: March 13, 2026
                 <div id="learningStudyContainer" class="learning-study-container"></div>
                 <div id="advancedStudyAnalytics" class="panel-body"></div>
             </div>
+            <div class="panel-card ai-evaluation-card">
+                <div class="panel-heading">
+                    <div>
+                        <p class="eyebrow">Quality evaluation</p>
+                        <h3>Generate questions from a real PDF</h3>
+                        <p class="notes-line">Temporary review only. Nothing is saved, approved, or added to study sessions.</p>
+                    </div>
+                </div>
+                <div id="aiQuestionEvaluation" class="ai-evaluation-container"></div>
+            </div>
         </section>
 
         <section id="flashcardsPanel" class="dashboard-panel">
@@ -555,6 +565,7 @@ Date Created: March 13, 2026
     <script src="pdfImportLearningTest/learningImporter.js"></script>
     <script type="module" src="js/learning/learningPersistence.js"></script>
     <script type="module" src="js/learning/studyExperience.js"></script>
+    <script type="module" src="js/learning/aiQuestionEvaluation.js"></script>
     <script src="firebase-config.js"></script>
     <script type="module" src="js/firebase/authGate.js"></script>
     <script src="js/pwa.js"></script>

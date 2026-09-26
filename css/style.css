@@ -5307,3 +5307,157 @@ body[data-active-course]:not([data-active-course=""]) #filesPanel #fileCourse {
         display: none !important;
     }
 }
+
+.ai-evaluation-card {
+    margin-top: 18px;
+}
+
+.ai-evaluation-container {
+    display: grid;
+    gap: 16px;
+}
+
+.ai-evaluation-form,
+.ai-evaluation-range {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.ai-evaluation-form label,
+.ai-evaluation-range label {
+    display: grid;
+    gap: 6px;
+    color: var(--text-muted);
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.ai-evaluation-form select,
+.ai-evaluation-form input,
+.ai-evaluation-range input {
+    width: 100%;
+}
+
+.ai-evaluation-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    grid-column: 1 / -1;
+}
+
+.ai-evaluation-status,
+.ai-evaluation-summary {
+    display: grid;
+    gap: 4px;
+    padding: 12px 14px;
+    border: 1px solid var(--border);
+    background: var(--surface-secondary);
+    color: var(--text-muted);
+    font-size: 0.88rem;
+}
+
+.ai-evaluation-status.is-working {
+    color: var(--accent);
+}
+
+.ai-evaluation-status.is-success {
+    color: var(--success, #247b63);
+}
+
+.ai-evaluation-status.is-error {
+    color: var(--danger);
+}
+
+.ai-evaluation-results {
+    display: grid;
+    gap: 12px;
+}
+
+.ai-proposal {
+    padding: 16px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+}
+
+.ai-proposal-heading {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    color: var(--text-muted);
+    font-size: 0.76rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+.ai-proposal-status {
+    color: var(--accent);
+}
+
+.ai-proposal h4 {
+    margin: 12px 0;
+    font-size: 1.05rem;
+}
+
+.ai-proposal-fields {
+    display: grid;
+    gap: 10px;
+    margin: 0;
+}
+
+.ai-proposal-fields div {
+    display: grid;
+    gap: 3px;
+}
+
+.ai-proposal-fields dt,
+.ai-evidence strong {
+    color: var(--text-muted);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.ai-proposal-fields dd {
+    margin: 0;
+    line-height: 1.5;
+}
+
+.ai-evidence {
+    display: grid;
+    gap: 8px;
+    margin-top: 16px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border);
+}
+
+.ai-evidence blockquote {
+    margin: 0;
+    padding: 10px 12px;
+    border-left: 3px solid var(--accent);
+    background: var(--surface-secondary);
+    line-height: 1.5;
+}
+
+.ai-evidence blockquote span {
+    display: block;
+    margin-bottom: 4px;
+    color: var(--text-muted);
+    font-size: 0.76rem;
+}
+
+@media (max-width: 760px) {
+    .ai-evaluation-form,
+    .ai-evaluation-range {
+        grid-template-columns: 1fr;
+    }
+
+    .ai-evaluation-actions {
+        grid-column: auto;
+        flex-wrap: wrap;
+    }
+}
