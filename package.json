@@ -5,6 +5,7 @@
     "type": "module",
     "scripts": {
         "build": "node scripts/generate-firebase-config.mjs",
-        "validate:deployment": "node scripts/validate-deployment.mjs"
+        "validate:deployment": "node scripts/validate-deployment.mjs",
+        "test": "node --test"
     }
 }
