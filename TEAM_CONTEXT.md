@@ -115,6 +115,21 @@ Course-level metrics may be derived from study plans, but study plans are the so
 
 ---
 
+### Question Ownership
+
+Questions belong to exactly one study plan.
+
+A question may be duplicated across study plans if desired,
+but each copy is treated as an independent learning item.
+
+Mastery, confidence history, scheduling,
+review state, and analytics do not transfer automatically
+between separate study plans.
+
+Each study plan is an independent learning environment.
+
+---
+
 ## Project Principles
 
 1. Build production-quality software.
